@@ -9,7 +9,7 @@ export default function EntrenamientosPage() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="min-h-screen bg-black text-gray-300 p-4">
       {/* Encabezado */}
       <div className="flex justify-between items-center mb-6">
         <Link href="/staff">
@@ -23,10 +23,10 @@ export default function EntrenamientosPage() {
           </div>
           <h1 className="text-3xl font-bold text-yellow-400 text-center">Gestión de Entrenamientos</h1>
         </div>
-        <div className="w-20" /> {/* Espaciador */}
+        <div className="w-20" />
       </div>
 
-      {/* Botones de navegación */}
+      {/* Opciones */}
       <div className="grid gap-6 w-full max-w-md mx-auto mt-8">
         <Button
           onClick={() => router.push("/staff/entrenamientos/planificacion")}
