@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/hooks/use-toast"
 import Link from "next/link"
 import Image from "next/image"
+import { obtenerJugador } from "@/lib/firestoreHelpers"
 
 const wellnessQuestions = [
   {
@@ -69,6 +70,51 @@ export default function PlayerFormPage() {
   const [rpe, setRpe] = useState<string>("")
   const [painDescription, setPainDescription] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [jugador, setJugador] = useState<any>(null)
+
+  useEffect(() => {
+    const loadPlayerData = async () => {
+      try {
+        const playerData = await obtenerJugador(id)
+        if (playerData) {
+          setJugador(playerData)
+        } else {
+          // Fallback for mock data
+          setJugador({
+            nombre:
+              id
+                ?.replace(/-/g, " ")
+                .replace(/\b\w/g, (l) => l.toUpperCase())
+                .split(" ")[0] || "Jugador",
+            apellido:
+              id
+                ?.replace(/-/g, " ")
+                .replace(/\b\w/g, (l) => l.toUpperCase())
+                .split(" ")[1] || "",
+          })
+        }
+      } catch (error) {
+        console.error("Error loading player:", error)
+        // Fallback for mock data
+        setJugador({
+          nombre:
+            id
+              ?.replace(/-/g, " ")
+              .replace(/\b\w/g, (l) => l.toUpperCase())
+              .split(" ")[0] || "Jugador",
+          apellido:
+            id
+              ?.replace(/-/g, " ")
+              .replace(/\b\w/g, (l) => l.toUpperCase())
+              .split(" ")[1] || "",
+        })
+      }
+    }
+
+    if (id) {
+      loadPlayerData()
+    }
+  }, [id])
 
   // Load saved data from localStorage when component mounts
   useEffect(() => {
@@ -320,8 +366,8 @@ export default function PlayerFormPage() {
           <div className="relative w-[50px] h-[60px] mb-2">
             <Image src="/penarol-white-bg.png" alt="Escudo Peñarol" fill className="object-contain" />
           </div>
-          <h1 className="text-2xl font-bold text-center text-yellow-400">
-            {`Formulario - ${id?.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}`}
+          <h1 className="text-3xl font-bold text-yellow-400 text-center mb-6">
+            Formulario - {jugador?.nombre} {jugador?.apellido}
           </h1>
         </div>
         <div className="w-20"></div> {/* Spacer for alignment */}
