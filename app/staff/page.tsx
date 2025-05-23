@@ -25,44 +25,50 @@ export default function StaffMenu() {
         <div className="w-20" />
       </div>
 
-     <div className="grid gap-6 w-full max-w-md mx-auto mt-8">
-  <Button
-    className="w-full bg-gray-800 text-white hover:bg-yellow-500 hover:text-black text-xl py-6 transition"
-    onClick={() => router.push("/staff/calendario")}
-  >
-    📅 Calendario
-  </Button>
-  <Button
-    onClick={() => router.push("/staff/evaluaciones")}
-    className="w-full bg-gray-800 hover:bg-gray-700 text-xl py-6"
-  >
-    🧪 Evaluaciones
-  </Button>
-  <Button
-    onClick={() => router.push("/staff/carga-externa")}
-    className="w-full bg-gray-800 hover:bg-gray-700 text-xl py-6"
-  >
-    📊 Carga Externa
-  </Button>
-  <Button
-    onClick={() => router.push("/staff/carga-interna")}
-    className="w-full bg-gray-800 hover:bg-gray-700 text-xl py-6"
-  >
-    💬 Carga Interna
-  </Button>
-  <Button
-    onClick={() => router.push("/staff/entrenamientos")}
-    className="w-full bg-gray-800 hover:bg-gray-700 text-xl py-6"
-  >
-    🏋️ Gestión de Entrenamientos
-  </Button>
-  <Button
-    onClick={() => router.push("/staff/partidos")}
-    className="w-full bg-gray-800 hover:bg-gray-700 text-xl py-6"
-  >
-    🏟️ Gestión de Partidos
-  </Button>
-</div>
+      <div className="grid gap-6 w-full max-w-md mx-auto mt-8">
+        <Button
+          className="w-full bg-gray-800 text-white hover:bg-yellow-500 hover:text-black text-xl py-6 transition"
+          onClick={() => router.push("/staff/jugadores")}
+        >
+          👤 Jugadores
+        </Button>
+        <Button
+          className="w-full bg-gray-800 text-white hover:bg-yellow-500 hover:text-black text-xl py-6 transition"
+          onClick={() => router.push("/staff/calendario")}
+        >
+          📅 Calendario
+        </Button>
+        <Button
+          onClick={() => router.push("/staff/evaluaciones")}
+          className="w-full bg-gray-800 hover:bg-gray-700 text-xl py-6"
+        >
+          🧪 Evaluaciones
+        </Button>
+        <Button
+          onClick={() => router.push("/staff/carga-externa")}
+          className="w-full bg-gray-800 hover:bg-gray-700 text-xl py-6"
+        >
+          📊 Carga Externa
+        </Button>
+        <Button
+          onClick={() => router.push("/staff/carga-interna")}
+          className="w-full bg-gray-800 hover:bg-gray-700 text-xl py-6"
+        >
+          💬 Carga Interna
+        </Button>
+        <Button
+          onClick={() => router.push("/staff/entrenamientos")}
+          className="w-full bg-gray-800 hover:bg-gray-700 text-xl py-6"
+        >
+          🏋️ Gestión de Entrenamientos
+        </Button>
+        <Button
+          onClick={() => router.push("/staff/partidos")}
+          className="w-full bg-gray-800 hover:bg-gray-700 text-xl py-6"
+        >
+          🏟️ Gestión de Partidos
+        </Button>
+      </div>
     </div>
   )
 }

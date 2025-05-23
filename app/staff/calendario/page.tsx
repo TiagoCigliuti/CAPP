@@ -2,27 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import {
-  startOfWeek,
-  addDays,
-  format,
-  subWeeks,
-  addWeeks
-} from "date-fns"
+import { format, addDays, startOfWeek, subWeeks, addWeeks } from "date-fns"
 import { es } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
 import { Pencil, Trash2 } from "lucide-react"
+import Link from "next/link"
+import Image from "next/image"
 
 type Activity = { time: string; activity: string }
 
-const actividadSugeridas = [
-  "Desayuno",
-  "Gimnasio",
-  "Entrenamiento técnico",
-  "Evaluación",
-  "Partido",
-  "Libre"
-]
+const actividadSugeridas = ["Desayuno", "Gimnasio", "Entrenamiento técnico", "Evaluación", "Partido", "Libre"]
 
 export default function CalendarioSemanal() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -54,10 +43,9 @@ export default function CalendarioSemanal() {
 
     const updated = {
       ...schedule,
-      [selectedDate]: [
-        ...(schedule[selectedDate] || []),
-        { time: newTime, activity: newActivity }
-      ].sort((a, b) => a.time.localeCompare(b.time))
+      [selectedDate]: [...(schedule[selectedDate] || []), { time: newTime, activity: newActivity }].sort((a, b) =>
+        a.time.localeCompare(b.time),
+      ),
     }
 
     setSchedule(updated)
@@ -100,29 +88,23 @@ export default function CalendarioSemanal() {
     : ""
 
   return (
-    <div
-      className="min-h-screen bg-black text-white p-6"
-      onClick={() => setSelectedDate("")}
-    >
+    <div className="min-h-screen bg-black text-white p-6" onClick={() => setSelectedDate("")}>
       {/* Encabezado */}
       <div className="flex justify-between items-center mb-6">
-        <Button
-          onClick={() => router.push("/staff")}
-          variant="outline"
-          className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
-        >
-          Volver al menú
-        </Button>
-        <h1 className="text-2xl text-yellow-400 font-bold text-center flex-1">
-          {weekRange}
-        </h1>
+        <Link href="/staff">
+          <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+            Volver al menú
+          </Button>
+        </Link>
+        <div className="flex flex-col items-center">
+          <div className="relative w-[50px] h-[60px] mb-2">
+            <Image src="/penarol-white-bg.png" alt="Escudo Peñarol" fill className="object-contain" />
+          </div>
+          <h1 className="text-2xl text-yellow-400 font-bold text-center">{weekRange}</h1>
+        </div>
         <div className="flex gap-2">
-          <Button onClick={() => setCurrentDate(subWeeks(currentDate, 1))}>
-            ← Semana anterior
-          </Button>
-          <Button onClick={() => setCurrentDate(addWeeks(currentDate, 1))}>
-            Semana siguiente →
-          </Button>
+          <Button onClick={() => setCurrentDate(subWeeks(currentDate, 1))}>← Semana anterior</Button>
+          <Button onClick={() => setCurrentDate(addWeeks(currentDate, 1))}>Semana siguiente →</Button>
         </div>
       </div>
 
@@ -149,9 +131,7 @@ export default function CalendarioSemanal() {
 
               {/* Actividades */}
               <ul className="mb-3 space-y-1">
-                {actividades.length === 0 && (
-                  <li className="text-gray-400 italic">Sin actividades</li>
-                )}
+                {actividades.length === 0 && <li className="text-gray-400 italic">Sin actividades</li>}
                 {actividades.map((item, idx) => (
                   <li key={idx} className="text-sm flex justify-between items-center gap-2">
                     <span>
@@ -195,7 +175,9 @@ export default function CalendarioSemanal() {
                   >
                     <option value="">Seleccionar actividad</option>
                     {actividadSugeridas.map((op, i) => (
-                      <option key={i} value={op}>{op}</option>
+                      <option key={i} value={op}>
+                        {op}
+                      </option>
                     ))}
                     <option value="custom">Otra...</option>
                   </select>
