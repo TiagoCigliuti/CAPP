@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { agregarJugador, obtenerJugadores, eliminarJugador as eliminarJugadorFirebase } from "@/lib/firestoreHelpers"
+import { clubThemes, getCurrentTheme } from "@/lib/themes"
 
 export default function GestionJugadores() {
   const router = useRouter()
@@ -16,6 +17,7 @@ export default function GestionJugadores() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
+  const [theme, setTheme] = useState(clubThemes.default)
 
   // Formulario
   const [nombre, setNombre] = useState("")
@@ -58,6 +60,11 @@ export default function GestionJugadores() {
       }
     }
     cargar()
+  }, [])
+
+  useEffect(() => {
+    const currentTheme = getCurrentTheme()
+    setTheme(clubThemes[currentTheme])
   }, [])
 
   // Manejar carga de imagen
@@ -139,21 +146,23 @@ export default function GestionJugadores() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-gray-300 p-4">
+    <div className={`min-h-screen ${theme.bgColor} ${theme.textColor} p-4`}>
       {/* Header - Maintaining the consistent header structure */}
       <div className="flex justify-between items-center mb-8">
         <Link href="/staff">
-          <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+          <Button variant="outline" className={`${theme.borderColor} ${theme.textColor} hover:bg-gray-100`}>
             Volver
           </Button>
         </Link>
         <div className="flex flex-col items-center">
-          <div className="relative w-[50px] h-[60px] mb-2">
-            <Image src="/penarol-white-bg.png" alt="Escudo Peñarol" fill className="object-contain" />
-          </div>
-          <h1 className="text-2xl font-bold text-center text-yellow-400">Gestión de Jugadores</h1>
+          {theme.logo && (
+            <div className="relative w-[50px] h-[60px] mb-2">
+              <Image src={theme.logo || "/placeholder.svg"} alt="Logo" fill className="object-contain" />
+            </div>
+          )}
+          <h1 className={`text-2xl font-bold text-center ${theme.textColor}`}>Gestión de Jugadores</h1>
         </div>
-        <div className="w-20"></div> {/* Spacer for alignment */}
+        <div className="w-20"></div>
       </div>
 
       <div className="max-w-4xl mx-auto">
@@ -168,39 +177,39 @@ export default function GestionJugadores() {
         )}
 
         <Button
-          className="mb-6 bg-yellow-500 text-black hover:bg-yellow-400"
+          className={`mb-6 ${theme.primaryColor} text-white`}
           onClick={() => setMostrarFormulario(!mostrarFormulario)}
         >
           ➕ {mostrarFormulario ? "Cancelar" : "Crear nuevo jugador"}
         </Button>
 
         {mostrarFormulario && (
-          <div className="bg-gray-800 rounded-xl p-6 mb-6">
-            <h2 className="text-lg font-semibold text-yellow-400 mb-4">Nuevo Jugador</h2>
+          <div className={`${theme.cardBg} border ${theme.borderColor} rounded-xl p-6 mb-6`}>
+            <h2 className={`text-lg font-semibold ${theme.textColor} mb-4`}>Nuevo Jugador</h2>
             <div className="grid gap-4">
               <Input
                 placeholder="Nombre"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                className="bg-gray-900 border-gray-700 text-white"
+                className={`bg-white border ${theme.borderColor} ${theme.textColor}`}
               />
               <Input
                 placeholder="Apellido"
                 value={apellido}
                 onChange={(e) => setApellido(e.target.value)}
-                className="bg-gray-900 border-gray-700 text-white"
+                className={`bg-white border ${theme.borderColor} ${theme.textColor}`}
               />
               <Input
                 type="date"
                 value={fechaNacimiento}
                 onChange={(e) => setFechaNacimiento(e.target.value)}
-                className="bg-gray-900 border-gray-700 text-white"
+                className={`bg-white border ${theme.borderColor} ${theme.textColor}`}
               />
               <Input
                 placeholder="Posición"
                 value={posicion}
                 onChange={(e) => setPosicion(e.target.value)}
-                className="bg-gray-900 border-gray-700 text-white"
+                className={`bg-white border ${theme.borderColor} ${theme.textColor}`}
               />
 
               <div className="space-y-2">
@@ -219,7 +228,7 @@ export default function GestionJugadores() {
                 )}
               </div>
 
-              <Button className="mt-2 bg-green-600 hover:bg-green-700 text-white" onClick={guardarJugador}>
+              <Button className={`mt-2 ${theme.primaryColor} text-white`} onClick={guardarJugador}>
                 Guardar Jugador
               </Button>
             </div>
@@ -243,7 +252,7 @@ export default function GestionJugadores() {
             {jugadores.map((jugador) => (
               <div
                 key={jugador.id}
-                className="bg-gray-800 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:bg-gray-700 transition"
+                className={`${theme.cardBg} border ${theme.borderColor} p-4 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:shadow-md transition`}
               >
                 <div className="flex items-center gap-4">
                   {jugador.foto ? (

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { clubThemes, getCurrentTheme } from "@/lib/themes"
 
 const players = Array.from({ length: 10 }, (_, i) => `Jugador ${i + 1}`)
 
@@ -50,6 +51,12 @@ export default function CargaInternaDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
   const [responses, setResponses] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
+  const [theme, setTheme] = useState(clubThemes.default)
+
+  useEffect(() => {
+    const currentTheme = getCurrentTheme()
+    setTheme(clubThemes[currentTheme])
+  }, [])
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -139,23 +146,25 @@ export default function CargaInternaDashboard() {
   const stats = getCompletionStatus()
 
   return (
-    <div className="p-4 min-h-screen bg-black text-gray-300">
+    <div className={`p-4 min-h-screen ${theme.bgColor} ${theme.textColor}`}>
       <div className="flex justify-between items-center mb-6">
         <Link href="/staff">
-          <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+          <Button variant="outline" className={`${theme.borderColor} ${theme.textColor} hover:bg-gray-100`}>
             Volver
           </Button>
         </Link>
         <div className="flex flex-col items-center">
-          <div className="relative w-[50px] h-[60px] mb-2">
-            <Image src="/penarol-white-bg.png" alt="Escudo Peñarol" fill className="object-contain" priority />
-          </div>
-          <h1 className="text-2xl font-bold text-center text-yellow-400">Carga Interna</h1>
+          {theme.logo && (
+            <div className="relative w-[50px] h-[60px] mb-2">
+              <Image src={theme.logo || "/placeholder.svg"} alt="Logo" fill className="object-contain" priority />
+            </div>
+          )}
+          <h1 className={`text-2xl font-bold text-center ${theme.textColor}`}>Carga Interna</h1>
         </div>
         <div className="w-20"></div> {/* Spacer for alignment */}
       </div>
 
-      <div className="bg-gray-900 rounded-xl p-4 mb-6">
+      <div className={`${theme.cardBg} border ${theme.borderColor} rounded-xl p-4 mb-6`}>
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="space-y-1">
@@ -170,10 +179,7 @@ export default function CargaInternaDashboard() {
                 className="bg-gray-800 border-gray-700 text-white"
               />
             </div>
-            <Button
-              onClick={exportCSV}
-              className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-black"
-            >
+            <Button onClick={exportCSV} className={`flex items-center gap-2 ${theme.primaryColor} text-white`}>
               <Download size={16} />
               Exportar CSV
             </Button>
@@ -198,8 +204,8 @@ export default function CargaInternaDashboard() {
       <div className="overflow-auto rounded-xl shadow-lg">
         <table className="min-w-full border-collapse">
           <thead>
-            <tr className="bg-gray-800">
-              <th className="border border-gray-700 px-3 py-2 text-left text-yellow-400">Jugador</th>
+            <tr className={`${theme.cardBg} border ${theme.borderColor}`}>
+              <th className={`border ${theme.borderColor} px-3 py-2 text-left ${theme.textColor}`}>Jugador</th>
               {questionKeys.map((q) => (
                 <th key={q.key} className="border border-gray-700 px-3 py-2 text-left text-yellow-400">
                   {q.label}

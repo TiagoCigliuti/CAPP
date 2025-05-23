@@ -3,31 +3,42 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
+import { clubThemes, getCurrentTheme } from "@/lib/themes"
+import { useState, useEffect } from "react"
 
 export default function CargaExternaPage() {
+  const [theme, setTheme] = useState(clubThemes.default)
+
+  useEffect(() => {
+    const currentTheme = getCurrentTheme()
+    setTheme(clubThemes[currentTheme])
+  }, [])
+
   return (
-    <div className="min-h-screen bg-black text-gray-300 p-4">
+    <div className={`min-h-screen ${theme.bgColor} ${theme.textColor} p-4`}>
       <div className="flex justify-between items-center mb-6">
         <Link href="/staff">
-          <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+          <Button variant="outline" className={`${theme.borderColor} ${theme.textColor} hover:bg-gray-100`}>
             Volver
           </Button>
         </Link>
         <div className="flex flex-col items-center">
-          <div className="relative w-[50px] h-[60px] mb-2">
-            <Image src="/penarol-white-bg.png" alt="Escudo Peñarol" fill className="object-contain" />
-          </div>
-          <h1 className="text-2xl font-bold text-center text-yellow-400">Carga Externa</h1>
+          {theme.logo && (
+            <div className="relative w-[50px] h-[60px] mb-2">
+              <Image src={theme.logo || "/placeholder.svg"} alt="Logo" fill className="object-contain" />
+            </div>
+          )}
+          <h1 className={`text-2xl font-bold text-center ${theme.textColor}`}>Carga Externa</h1>
         </div>
-        <div className="w-20"></div> {/* Spacer for alignment */}
+        <div className="w-20"></div>
       </div>
 
       <div className="flex flex-col items-center justify-center h-[70vh]">
-        <div className="text-center p-8 bg-gray-900 rounded-xl max-w-md">
-          <h2 className="text-xl font-semibold text-yellow-400 mb-4">Sección en Desarrollo</h2>
-          <p className="mb-4">Esta sección está actualmente en desarrollo. Pronto estará disponible.</p>
+        <div className={`text-center p-8 ${theme.cardBg} border ${theme.borderColor} rounded-xl max-w-md`}>
+          <h2 className={`text-xl font-semibold ${theme.textColor} mb-4`}>Sección en Desarrollo</h2>
+          <p className="mb-4 text-gray-600">Esta sección está actualmente en desarrollo. Pronto estará disponible.</p>
           <Link href="/staff">
-            <Button className="bg-yellow-500 hover:bg-yellow-400 text-black">Volver al menú principal</Button>
+            <Button className={`${theme.primaryColor} text-white`}>Volver al menú principal</Button>
           </Link>
         </div>
       </div>

@@ -3,10 +3,15 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
+import { useState } from "react"
+import { useTheme } from "next-themes"
 
 export default function EvaluacionesPage() {
+  const [mounted, setMounted] = useState(false)
+  const { theme } = useTheme()
+
   return (
-    <div className="min-h-screen bg-black text-gray-300 p-4">
+    <div className="min-h-screen bg-zinc-950 text-gray-300 p-4">
       <div className="flex justify-between items-center mb-6">
         <Link href="/staff">
           <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
@@ -23,7 +28,7 @@ export default function EvaluacionesPage() {
       </div>
 
       <div className="flex flex-col items-center justify-center h-[70vh]">
-        <div className="text-center p-8 bg-gray-900 rounded-xl max-w-md">
+        <div className="text-center p-8 bg-zinc-900 border border-zinc-800 rounded-xl max-w-md">
           <h2 className="text-xl font-semibold text-yellow-400 mb-4">Sección en Desarrollo</h2>
           <p className="mb-4">Esta sección está actualmente en desarrollo. Pronto estará disponible.</p>
           <Link href="/staff">
