@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image"
 import { agregarJugador, obtenerJugadores, eliminarJugador as eliminarJugadorFirebase } from "@/lib/firestoreHelpers"
 import { clubThemes, getCurrentTheme } from "@/lib/themes"
+import { getCurrentUser, getCurrentClient } from "@/lib/users"
 
 export default function GestionJugadores() {
   const router = useRouter()
@@ -18,6 +18,7 @@ export default function GestionJugadores() {
   const [error, setError] = useState<string | null>(null)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [theme, setTheme] = useState(clubThemes.default)
+  const [currentClient, setCurrentClient] = useState<any>(null)
 
   // Formulario
   const [nombre, setNombre] = useState("")
@@ -30,37 +31,34 @@ export default function GestionJugadores() {
   useEffect(() => {
     async function cargar() {
       try {
-        const data = await obtenerJugadores()
-        setJugadores(data)
-        setError(null)
+        const user = getCurrentUser()
+        if (!user) {
+          router.push("/")
+          return
+        }
+
+        const client = await getCurrentClient()
+        setCurrentClient(client)
+
+        if (client) {
+          // Cargar jugadores del cliente actual
+          const data = await obtenerJugadores(client.id)
+          setJugadores(data)
+          setError(null)
+        } else {
+          setError("No se pudo identificar el cliente actual")
+          setJugadores([])
+        }
       } catch (err) {
         console.error("Error al cargar jugadores:", err)
         setError("No se pudieron cargar los jugadores. Error de permisos en Firebase.")
-        // Crear datos de ejemplo para desarrollo
-        setJugadores([
-          {
-            id: "ejemplo1",
-            nombre: "Juan",
-            apellido: "Pérez",
-            fechaNacimiento: "1995-05-15",
-            posicion: "Delantero",
-            foto: null,
-          },
-          {
-            id: "ejemplo2",
-            nombre: "Carlos",
-            apellido: "Rodríguez",
-            fechaNacimiento: "1998-10-20",
-            posicion: "Defensor",
-            foto: null,
-          },
-        ])
+        setJugadores([])
       } finally {
         setCargando(false)
       }
     }
     cargar()
-  }, [])
+  }, [router])
 
   useEffect(() => {
     const currentTheme = getCurrentTheme()
@@ -79,10 +77,15 @@ export default function GestionJugadores() {
     }
   }
 
-  // Guardar jugador sin volver a consultar la base
+  // Guardar jugador
   const guardarJugador = async () => {
     if (!nombre || !apellido || !fechaNacimiento || !posicion) {
       alert("Por favor completa todos los campos")
+      return
+    }
+
+    if (!currentClient) {
+      alert("Error: No se pudo identificar el cliente")
       return
     }
 
@@ -95,9 +98,12 @@ export default function GestionJugadores() {
     }
 
     try {
-      const docRef = await agregarJugador(nuevoJugador)
+      const docRef = await agregarJugador(nuevoJugador, currentClient.id)
 
-      setJugadores((prev) => [...prev, { id: docRef?.id || `temp-${Date.now()}`, ...nuevoJugador }])
+      setJugadores((prev) => [
+        ...prev,
+        { id: docRef?.id || `temp-${Date.now()}`, ...nuevoJugador, clientId: currentClient.id },
+      ])
       setError(null)
 
       // Reset formulario
@@ -107,13 +113,15 @@ export default function GestionJugadores() {
       setPosicion("")
       setFotoBase64(null)
       setMostrarFormulario(false)
+
+      alert("Jugador creado exitosamente")
     } catch (err) {
       console.error("Error al guardar jugador:", err)
       setError("No se pudo guardar el jugador. Error de permisos en Firebase.")
 
       // En modo desarrollo, simular éxito
       if (process.env.NODE_ENV === "development") {
-        setJugadores((prev) => [...prev, { id: `temp-${Date.now()}`, ...nuevoJugador }])
+        setJugadores((prev) => [...prev, { id: `temp-${Date.now()}`, ...nuevoJugador, clientId: currentClient.id }])
 
         // Reset formulario
         setNombre("")
@@ -122,6 +130,8 @@ export default function GestionJugadores() {
         setPosicion("")
         setFotoBase64(null)
         setMostrarFormulario(false)
+
+        alert("Jugador creado exitosamente (modo desarrollo)")
       }
     }
   }
@@ -133,6 +143,7 @@ export default function GestionJugadores() {
         await eliminarJugadorFirebase(id)
         setJugadores((prev) => prev.filter((j) => j.id !== id))
         setError(null)
+        alert("Jugador eliminado exitosamente")
       } catch (err) {
         console.error("Error al eliminar jugador:", err)
         setError("No se pudo eliminar el jugador. Error de permisos en Firebase.")
@@ -140,6 +151,7 @@ export default function GestionJugadores() {
         // En modo desarrollo, simular éxito
         if (process.env.NODE_ENV === "development") {
           setJugadores((prev) => prev.filter((j) => j.id !== id))
+          alert("Jugador eliminado exitosamente (modo desarrollo)")
         }
       }
     }
@@ -147,7 +159,7 @@ export default function GestionJugadores() {
 
   return (
     <div className={`min-h-screen ${theme.bgColor} ${theme.textColor} p-4`}>
-      {/* Header - Maintaining the consistent header structure */}
+      {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <Link href="/staff">
           <Button variant="outline" className={`${theme.borderColor} ${theme.textColor} hover:bg-gray-100`}>
@@ -155,12 +167,11 @@ export default function GestionJugadores() {
           </Button>
         </Link>
         <div className="flex flex-col items-center">
-          {theme.logo && (
-            <div className="relative w-[50px] h-[60px] mb-2">
-              <Image src={theme.logo || "/placeholder.svg"} alt="Logo" fill className="object-contain" />
-            </div>
-          )}
+          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-2">
+            <span className="text-white text-xl font-bold">SD</span>
+          </div>
           <h1 className={`text-2xl font-bold text-center ${theme.textColor}`}>Gestión de Jugadores</h1>
+          {currentClient && <p className="text-sm text-gray-600 mt-1">Cliente: {currentClient.name}</p>}
         </div>
         <div className="w-20"></div>
       </div>
@@ -191,38 +202,38 @@ export default function GestionJugadores() {
                 placeholder="Nombre"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                className={`bg-white border ${theme.borderColor} ${theme.textColor}`}
+                className={`bg-white border ${theme.borderColor} text-gray-900`}
               />
               <Input
                 placeholder="Apellido"
                 value={apellido}
                 onChange={(e) => setApellido(e.target.value)}
-                className={`bg-white border ${theme.borderColor} ${theme.textColor}`}
+                className={`bg-white border ${theme.borderColor} text-gray-900`}
               />
               <Input
                 type="date"
                 value={fechaNacimiento}
                 onChange={(e) => setFechaNacimiento(e.target.value)}
-                className={`bg-white border ${theme.borderColor} ${theme.textColor}`}
+                className={`bg-white border ${theme.borderColor} text-gray-900`}
               />
               <Input
                 placeholder="Posición"
                 value={posicion}
                 onChange={(e) => setPosicion(e.target.value)}
-                className={`bg-white border ${theme.borderColor} ${theme.textColor}`}
+                className={`bg-white border ${theme.borderColor} text-gray-900`}
               />
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-300">Foto del jugador</label>
-                <input type="file" accept="image/*" onChange={manejarFoto} className="text-white w-full" />
+                <label className="block text-sm font-medium text-gray-700">Foto del jugador</label>
+                <input type="file" accept="image/*" onChange={manejarFoto} className="text-gray-700 w-full" />
                 {fotoBase64 && (
                   <div className="mt-2">
-                    <p className="text-sm text-gray-400 mb-1">Vista previa:</p>
+                    <p className="text-sm text-gray-600 mb-1">Vista previa:</p>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={fotoBase64 || "/placeholder.svg"}
                       alt="Vista previa"
-                      className="w-20 h-20 object-cover rounded-full border-2 border-yellow-500"
+                      className="w-20 h-20 object-cover rounded-full border-2 border-blue-500"
                     />
                   </div>
                 )}
@@ -235,17 +246,25 @@ export default function GestionJugadores() {
           </div>
         )}
 
-        <h2 className="text-xl font-semibold text-yellow-400 mb-4">Lista de Jugadores ({jugadores.length})</h2>
+        <h2 className="text-xl font-semibold text-gray-700 mb-4">Jugadores del Cliente ({jugadores.length})</h2>
 
         {cargando ? (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-            <p className="text-gray-400">Cargando jugadores...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando jugadores...</p>
           </div>
         ) : jugadores.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            <p>No hay jugadores registrados</p>
-            <p className="text-sm">Haz clic en "Crear nuevo jugador" para agregar el primero</p>
+          <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-gray-500 text-2xl">👥</span>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">No hay jugadores registrados</h3>
+            <p className="text-gray-500 mb-4">
+              Aún no hay jugadores en el sistema. Puedes crear y gestionar jugadores desde aquí.
+            </p>
+            <Button className={`${theme.primaryColor} text-white`} onClick={() => setMostrarFormulario(true)}>
+              Crear primer jugador
+            </Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -260,19 +279,19 @@ export default function GestionJugadores() {
                     <img
                       src={jugador.foto || "/placeholder.svg"}
                       alt={`${jugador.nombre} ${jugador.apellido}`}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-yellow-500"
+                      className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
                     />
                   ) : (
-                    <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-black font-bold uppercase">
+                    <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold uppercase">
                       {jugador.nombre[0]}
                       {jugador.apellido[0]}
                     </div>
                   )}
                   <div>
-                    <h3 className="font-bold text-white">
+                    <h3 className="font-bold text-gray-900">
                       {jugador.nombre} {jugador.apellido}
                     </h3>
-                    <p className="text-gray-400">
+                    <p className="text-gray-600">
                       {jugador.posicion} • Nacido: {jugador.fechaNacimiento}
                     </p>
                   </div>
@@ -282,7 +301,7 @@ export default function GestionJugadores() {
                   <Button
                     variant="outline"
                     onClick={() => router.push(`/staff/jugadores/${jugador.id}`)}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-600"
+                    className="border-gray-400 text-gray-700 hover:bg-gray-100"
                   >
                     Ver Datos
                   </Button>
@@ -296,6 +315,17 @@ export default function GestionJugadores() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Información sobre gestión compartida */}
+        {currentClient && (
+          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <h3 className="font-semibold text-blue-900 mb-2">ℹ️ Gestión Compartida</h3>
+            <p className="text-blue-800 text-sm">
+              Todos los miembros del equipo pueden crear, editar y visualizar estos jugadores. Los jugadores creados
+              aquí estarán disponibles para todo el staff.
+            </p>
           </div>
         )}
       </div>

@@ -6,10 +6,9 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
 import { clubThemes, getCurrentTheme } from "@/lib/themes"
-
-const players = Array.from({ length: 10 }, (_, i) => `Jugador ${i + 1}`)
+import { getCurrentUser, getCurrentClient } from "@/lib/users"
+import { obtenerJugadores } from "@/lib/firestoreHelpers"
 
 const questionKeys = [
   { key: "mood", label: "Ánimo" },
@@ -52,6 +51,8 @@ export default function CargaInternaDashboard() {
   const [responses, setResponses] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
   const [theme, setTheme] = useState(clubThemes.default)
+  const [jugadores, setJugadores] = useState<any[]>([])
+  const [currentClient, setCurrentClient] = useState<any>(null)
 
   useEffect(() => {
     const currentTheme = getCurrentTheme()
@@ -59,14 +60,36 @@ export default function CargaInternaDashboard() {
   }, [])
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    async function cargarDatos() {
+      try {
+        const user = getCurrentUser()
+        if (!user) return
+
+        const client = await getCurrentClient()
+        setCurrentClient(client)
+
+        if (client) {
+          // Cargar jugadores del cliente actual
+          const jugadoresData = await obtenerJugadores(client.id)
+          setJugadores(jugadoresData)
+        }
+      } catch (error) {
+        console.error("Error cargando datos:", error)
+        setJugadores([])
+      }
+    }
+
+    cargarDatos()
+  }, [])
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && jugadores.length > 0) {
       setLoading(true)
       const data: Record<string, any> = {}
 
-      players.forEach((_, i) => {
-        const id = `jugador-${i + 1}`
-        const wellnessRaw = localStorage.getItem(`wellness-${id}`)
-        const rpeRaw = localStorage.getItem(`rpe-${id}`)
+      jugadores.forEach((jugador) => {
+        const wellnessRaw = localStorage.getItem(`wellness-${jugador.id}`)
+        const rpeRaw = localStorage.getItem(`rpe-${jugador.id}`)
         const today = selectedDate
 
         let wellness = null
@@ -77,7 +100,7 @@ export default function CargaInternaDashboard() {
               wellness = parsed
             }
           } catch (error) {
-            console.error(`Error parsing wellness data for ${id}:`, error)
+            console.error(`Error parsing wellness data for ${jugador.id}:`, error)
           }
         }
 
@@ -89,11 +112,12 @@ export default function CargaInternaDashboard() {
               rpe = parsed.rpe
             }
           } catch (error) {
-            console.error(`Error parsing RPE data for ${id}:`, error)
+            console.error(`Error parsing RPE data for ${jugador.id}:`, error)
           }
         }
 
-        data[`Jugador ${i + 1}`] = {
+        const playerName = `${jugador.nombre} ${jugador.apellido}`
+        data[playerName] = {
           ...wellness?.wellnessData,
           painDescription: wellness?.painDescription || "-",
           rpe: rpe || "-",
@@ -103,12 +127,16 @@ export default function CargaInternaDashboard() {
 
       setResponses(data)
       setLoading(false)
+    } else if (jugadores.length === 0 && !loading) {
+      setResponses({})
+      setLoading(false)
     }
-  }, [selectedDate])
+  }, [selectedDate, jugadores])
 
   const exportCSV = () => {
+    const playerNames = Object.keys(responses)
     const headers = ["Jugador", ...questionKeys.map((q) => q.label)].join(",")
-    const rows = players.map((player) => {
+    const rows = playerNames.map((player) => {
       const values = questionKeys.map((q) => {
         const raw = responses[player]?.[q.key] || "-"
         const numeric = mapOptionToNumber(raw)
@@ -126,11 +154,12 @@ export default function CargaInternaDashboard() {
   }
 
   const getCompletionStatus = () => {
-    const total = players.length
+    const playerNames = Object.keys(responses)
+    const total = playerNames.length
     let completed = 0
     let partial = 0
 
-    players.forEach((player) => {
+    playerNames.forEach((player) => {
       const hasWellness = Object.keys(responses[player] || {}).some(
         (key) => key !== "rpe" && responses[player][key] !== "-",
       )
@@ -154,21 +183,20 @@ export default function CargaInternaDashboard() {
           </Button>
         </Link>
         <div className="flex flex-col items-center">
-          {theme.logo && (
-            <div className="relative w-[50px] h-[60px] mb-2">
-              <Image src={theme.logo || "/placeholder.svg"} alt="Logo" fill className="object-contain" priority />
-            </div>
-          )}
+          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-2">
+            <span className="text-white text-xl font-bold">SD</span>
+          </div>
           <h1 className={`text-2xl font-bold text-center ${theme.textColor}`}>Carga Interna</h1>
+          {currentClient && <p className="text-sm text-gray-600 mt-1">Cliente: {currentClient.name}</p>}
         </div>
-        <div className="w-20"></div> {/* Spacer for alignment */}
+        <div className="w-20"></div>
       </div>
 
       <div className={`${theme.cardBg} border ${theme.borderColor} rounded-xl p-4 mb-6`}>
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="space-y-1">
-              <Label htmlFor="date-select" className="text-gray-300">
+              <Label htmlFor="date-select" className="text-gray-700">
                 Seleccionar Fecha
               </Label>
               <Input
@@ -176,7 +204,7 @@ export default function CargaInternaDashboard() {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-white border-gray-300 text-gray-900"
               />
             </div>
             <Button onClick={exportCSV} className={`flex items-center gap-2 ${theme.primaryColor} text-white`}>
@@ -186,28 +214,28 @@ export default function CargaInternaDashboard() {
           </div>
           <div className="flex gap-4">
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-400">{stats.completed}</div>
-              <div className="text-sm">Completos</div>
+              <div className="text-3xl font-bold text-green-600">{stats.completed}</div>
+              <div className="text-sm text-gray-600">Completos</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-yellow-400">{stats.partial}</div>
-              <div className="text-sm">Parciales</div>
+              <div className="text-3xl font-bold text-yellow-600">{stats.partial}</div>
+              <div className="text-sm text-gray-600">Parciales</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-red-400">{stats.total - stats.completed - stats.partial}</div>
-              <div className="text-sm">Pendientes</div>
+              <div className="text-3xl font-bold text-red-600">{stats.total - stats.completed - stats.partial}</div>
+              <div className="text-sm text-gray-600">Pendientes</div>
             </div>
           </div>
         </div>
       </div>
 
       <div className="overflow-auto rounded-xl shadow-lg">
-        <table className="min-w-full border-collapse">
+        <table className="min-w-full border-collapse bg-white">
           <thead>
-            <tr className={`${theme.cardBg} border ${theme.borderColor}`}>
-              <th className={`border ${theme.borderColor} px-3 py-2 text-left ${theme.textColor}`}>Jugador</th>
+            <tr className="bg-gray-50">
+              <th className="border border-gray-300 px-3 py-2 text-left text-gray-900">Jugador</th>
               {questionKeys.map((q) => (
-                <th key={q.key} className="border border-gray-700 px-3 py-2 text-left text-yellow-400">
+                <th key={q.key} className="border border-gray-300 px-3 py-2 text-left text-gray-900">
                   {q.label}
                 </th>
               ))}
@@ -218,22 +246,31 @@ export default function CargaInternaDashboard() {
               <tr>
                 <td
                   colSpan={questionKeys.length + 1}
-                  className="border border-gray-700 px-4 py-8 text-center bg-gray-900"
+                  className="border border-gray-300 px-4 py-8 text-center bg-white text-gray-600"
                 >
                   Cargando datos...
                 </td>
               </tr>
+            ) : Object.keys(responses).length === 0 ? (
+              <tr>
+                <td
+                  colSpan={questionKeys.length + 1}
+                  className="border border-gray-300 px-4 py-8 text-center bg-white text-gray-600"
+                >
+                  No hay jugadores registrados en el sistema
+                </td>
+              </tr>
             ) : (
-              players.map((player) => (
-                <tr key={player} className="hover:bg-gray-800">
-                  <td className="border border-gray-700 px-3 py-2 font-medium">{player}</td>
+              Object.keys(responses).map((player) => (
+                <tr key={player} className="hover:bg-gray-50">
+                  <td className="border border-gray-300 px-3 py-2 font-medium text-gray-900">{player}</td>
                   {questionKeys.map((q) => {
                     const rawValue = responses[player]?.[q.key] || "-"
                     const numeric = mapOptionToNumber(rawValue)
                     const display = numeric || rawValue
                     const bg = getColor(numeric)
                     return (
-                      <td key={q.key} className={`border border-gray-700 px-3 py-2 text-center ${bg}`}>
+                      <td key={q.key} className={`border border-gray-300 px-3 py-2 text-center ${bg}`}>
                         {display}
                       </td>
                     )
@@ -245,28 +282,28 @@ export default function CargaInternaDashboard() {
         </table>
       </div>
 
-      <div className="mt-6 bg-gray-900 p-4 rounded-xl">
-        <h2 className="text-lg font-semibold mb-2 text-yellow-400">Leyenda de colores</h2>
+      <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
+        <h2 className="text-lg font-semibold mb-2 text-gray-900">Leyenda de colores</h2>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           <div className="flex items-center">
             <div className="w-4 h-4 bg-blue-800 mr-2"></div>
-            <span className="text-sm">1 - Muy bueno</span>
+            <span className="text-sm text-gray-700">1 - Muy bueno</span>
           </div>
           <div className="flex items-center">
             <div className="w-4 h-4 bg-green-700 mr-2"></div>
-            <span className="text-sm">2 - Bueno</span>
+            <span className="text-sm text-gray-700">2 - Bueno</span>
           </div>
           <div className="flex items-center">
             <div className="w-4 h-4 bg-yellow-600 mr-2"></div>
-            <span className="text-sm">3 - Normal</span>
+            <span className="text-sm text-gray-700">3 - Normal</span>
           </div>
           <div className="flex items-center">
             <div className="w-4 h-4 bg-orange-600 mr-2"></div>
-            <span className="text-sm">4 - Malo</span>
+            <span className="text-sm text-gray-700">4 - Malo</span>
           </div>
           <div className="flex items-center">
             <div className="w-4 h-4 bg-red-700 mr-2"></div>
-            <span className="text-sm">5 - Muy malo</span>
+            <span className="text-sm text-gray-700">5 - Muy malo</span>
           </div>
         </div>
       </div>

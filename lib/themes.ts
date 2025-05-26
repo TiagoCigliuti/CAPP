@@ -1,8 +1,10 @@
+import type { User } from "./users"
+
 export const clubThemes = {
   default: {
     bgColor: "bg-white",
     textColor: "text-gray-900",
-    primaryColor: "bg-green-600 hover:bg-green-700",
+    primaryColor: "bg-blue-600 hover:bg-blue-700",
     secondaryColor: "bg-gray-800 hover:bg-gray-700",
     accentColor: "bg-gray-600 hover:bg-gray-500",
     borderColor: "border-gray-300",
@@ -37,17 +39,18 @@ export const clubThemes = {
 export type ClubTheme = keyof typeof clubThemes
 
 // Función para obtener el tema basado en el usuario
-export const getThemeForUser = (userId?: string, userRole?: string): ClubTheme => {
-  // Aquí puedes implementar la lógica para determinar el tema según el usuario
-  // Por ejemplo:
+export const getThemeForUser = (user: User): ClubTheme => {
+  // Si el usuario tiene un tema específico asignado
+  if (user.theme && clubThemes[user.theme as ClubTheme]) {
+    return user.theme as ClubTheme
+  }
 
-  // Si es un usuario específico de Peñarol
-  if (userId?.includes("penarol") || userRole === "penarol_staff") {
+  // Lógica basada en el username o role
+  if (user.username.toLowerCase().includes("penarol")) {
     return "penarol"
   }
 
-  // Si es un usuario específico de Nacional
-  if (userId?.includes("nacional") || userRole === "nacional_staff") {
+  if (user.username.toLowerCase().includes("nacional")) {
     return "nacional"
   }
 
@@ -55,7 +58,7 @@ export const getThemeForUser = (userId?: string, userRole?: string): ClubTheme =
   return "default"
 }
 
-// Función simple para obtener el tema actual (mantenemos compatibilidad)
+// Función simple para obtener el tema actual - siempre default por defecto
 export const getCurrentTheme = (): ClubTheme => {
   if (typeof localStorage !== "undefined") {
     const saved = localStorage.getItem("clubTheme") as ClubTheme
@@ -63,19 +66,16 @@ export const getCurrentTheme = (): ClubTheme => {
       return saved
     }
   }
-  return "default" // Default to generic theme
+  return "default"
 }
 
-// Función para establecer el tema según el usuario (nueva funcionalidad)
-export const setThemeForUser = (userId: string, userRole?: string): ClubTheme => {
-  const theme = getThemeForUser(userId, userRole)
+// Función para establecer el tema según el usuario - siempre default por defecto
+export const setThemeForUser = (user: User): ClubTheme => {
+  // Por ahora, siempre usar tema default
+  const theme = "default"
 
   if (typeof localStorage !== "undefined") {
     localStorage.setItem("clubTheme", theme)
-    localStorage.setItem("userId", userId)
-    if (userRole) {
-      localStorage.setItem("userRole", userRole)
-    }
   }
 
   return theme
@@ -85,12 +85,10 @@ export const setThemeForUser = (userId: string, userRole?: string): ClubTheme =>
 export const clearUserTheme = (): void => {
   if (typeof localStorage !== "undefined") {
     localStorage.removeItem("clubTheme")
-    localStorage.removeItem("userId")
-    localStorage.removeItem("userRole")
   }
 }
 
-// Simple function to set the current theme (mantenemos para compatibilidad)
+// Función para establecer tema manualmente (para admins)
 export const setCurrentTheme = (theme: ClubTheme): void => {
   if (typeof localStorage !== "undefined") {
     localStorage.setItem("clubTheme", theme)

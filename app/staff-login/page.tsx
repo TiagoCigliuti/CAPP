@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { toast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { clubThemes, getCurrentTheme, setThemeForUser } from "@/lib/themes"
+import { authenticateUser, setCurrentUser } from "@/lib/users"
 import { useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
@@ -27,28 +28,22 @@ export default function StaffLogin() {
     setIsSubmitting(true)
     setError("")
 
-    if (password === "1891") {
-      // Aquí puedes implementar la lógica para determinar el usuario y su tema
-      // Por ejemplo, según la contraseña o un sistema de autenticación más complejo
+    // Autenticar usuario usando el sistema de usuarios
+    const user = authenticateUser(password)
 
-      // Ejemplo de cómo asignar tema según usuario:
-      const userId = "staff_user"
-      const userRole = "default_staff"
-
-      // Si en el futuro tienes diferentes contraseñas o usuarios:
-      // if (password === "penarol123") {
-      //   userId = "penarol_staff"
-      //   userRole = "penarol_staff"
-      // } else if (password === "nacional123") {
-      //   userId = "nacional_staff"
-      //   userRole = "nacional_staff"
-      // }
+    if (user) {
+      // Guardar usuario actual
+      setCurrentUser(user)
 
       // Establecer el tema según el usuario
-      const userTheme = setThemeForUser(userId, userRole)
-
-      // Actualizar el tema local
+      const userTheme = setThemeForUser(user)
       setTheme(clubThemes[userTheme])
+
+      // Mostrar mensaje de bienvenida
+      toast({
+        title: "Acceso exitoso",
+        description: `Bienvenido ${user.username}`,
+      })
 
       router.push("/staff")
     } else {
@@ -105,6 +100,15 @@ export default function StaffLogin() {
             Volver al inicio
           </Link>
         </div>
+
+        {/* Información de usuarios para desarrollo */}
+        {process.env.NODE_ENV === "development" && (
+          <div className="mt-6 p-3 bg-gray-100 rounded text-xs text-gray-600">
+            <p className="font-semibold mb-1">Usuarios de prueba:</p>
+            <p>Admin1: 1891</p>
+            <p>Admin2: 2025</p>
+          </div>
+        )}
       </div>
     </div>
   )
