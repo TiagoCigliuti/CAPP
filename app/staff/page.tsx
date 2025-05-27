@@ -7,6 +7,7 @@ import { getEnabledModules, getDefaultEnabledModules } from "@/lib/staffModules"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useTheme } from "@/hooks/useTheme"
+import { setThemeForClient } from "@/lib/themes"
 
 export default function StaffMenu() {
   const router = useRouter()
@@ -14,6 +15,7 @@ export default function StaffMenu() {
   const [enabledModules, setEnabledModules] = useState<any[]>([])
   const [currentClient, setCurrentClient] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [themeLoaded, setThemeLoaded] = useState(false)
 
   useEffect(() => {
     const loadClientModules = async () => {
@@ -26,6 +28,18 @@ export default function StaffMenu() {
 
         const client = await getCurrentClient()
         setCurrentClient(client)
+
+        // Aplicar tema del cliente si existe
+        if (client) {
+          console.log("Applying theme for client:", client.name, "Theme:", client.theme)
+          await setThemeForClient(client)
+          // Esperar un poco más para que el tema se aplique
+          setTimeout(() => {
+            setThemeLoaded(true)
+          }, 500)
+        } else {
+          setThemeLoaded(true)
+        }
 
         if (client && client.enabledModules) {
           const modules = getEnabledModules(client.enabledModules)
@@ -40,6 +54,7 @@ export default function StaffMenu() {
         // En caso de error, mostrar módulos por defecto
         const defaultModules = getEnabledModules(getDefaultEnabledModules())
         setEnabledModules(defaultModules)
+        setThemeLoaded(true)
       } finally {
         setLoading(false)
       }
@@ -52,11 +67,11 @@ export default function StaffMenu() {
   const safeTheme = theme || {
     bgColor: "bg-white",
     textColor: "text-gray-900",
-    primaryColor: "bg-blue-600",
+    primaryColor: "bg-blue-600 hover:bg-blue-700",
     borderColor: "border-gray-300",
   }
 
-  if (loading) {
+  if (loading || !themeLoaded) {
     return (
       <div className={`min-h-screen ${safeTheme.bgColor} ${safeTheme.textColor} p-4 flex items-center justify-center`}>
         <div className="text-center">
@@ -122,10 +137,11 @@ export default function StaffMenu() {
           {enabledModules.map((module) => (
             <Button
               key={module.id}
-              className={`w-full ${safeTheme.primaryColor} text-white hover:opacity-90 text-xl py-6 transition`}
+              className={`w-full ${safeTheme.primaryColor} text-white text-xl py-6 px-4 min-h-[80px] flex items-center justify-center gap-3 font-semibold transition-all duration-200`}
               onClick={() => router.push(module.route)}
             >
-              {module.icon} {module.name}
+              <span className="text-2xl">{module.icon}</span>
+              <span className="text-xl">{module.name}</span>
             </Button>
           ))}
 

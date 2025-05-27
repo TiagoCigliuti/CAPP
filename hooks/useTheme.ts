@@ -1,6 +1,6 @@
 "use client"
 
-import { clubThemes, getCurrentTheme, forceApplyTheme, type ClubTheme } from "@/lib/themes"
+import { clubThemes, getCurrentTheme, type ClubTheme } from "@/lib/themes"
 import { useEffect, useState } from "react"
 
 export const useTheme = (theme?: ClubTheme) => {
@@ -10,23 +10,20 @@ export const useTheme = (theme?: ClubTheme) => {
     // Escuchar cambios en localStorage para temas dinámicos
     const handleStorageChange = () => {
       const newTheme = getCurrentTheme()
+      console.log("🔄 Theme changed via storage:", newTheme.clubName || "Unknown")
       setCurrentTheme(newTheme)
     }
 
     window.addEventListener("storage", handleStorageChange)
 
-    // También escuchar cambios internos con mayor frecuencia
+    // También escuchar cambios internos
     const interval = setInterval(() => {
       const newTheme = getCurrentTheme()
       if (JSON.stringify(newTheme) !== JSON.stringify(currentTheme)) {
+        console.log("🔄 Theme changed internally:", newTheme.clubName || "Unknown")
         setCurrentTheme(newTheme)
       }
-    }, 500) // Verificar cada 500ms
-
-    // Forzar aplicación del tema al montar el componente
-    setTimeout(() => {
-      forceApplyTheme()
-    }, 200)
+    }, 1000)
 
     return () => {
       window.removeEventListener("storage", handleStorageChange)
@@ -34,5 +31,8 @@ export const useTheme = (theme?: ClubTheme) => {
     }
   }, [currentTheme])
 
-  return theme ? clubThemes[theme] : currentTheme
+  const finalTheme = theme ? clubThemes[theme] : currentTheme
+  console.log("🎨 useTheme returning:", finalTheme.clubName || "Unknown", finalTheme.primaryColor)
+
+  return finalTheme
 }
