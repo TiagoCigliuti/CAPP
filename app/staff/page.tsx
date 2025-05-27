@@ -7,15 +7,21 @@ import { getEnabledModules, getDefaultEnabledModules } from "@/lib/staffModules"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useTheme } from "@/hooks/useTheme"
-import { setThemeForClient } from "@/lib/themes"
+import { setThemeForClient, getCurrentTheme } from "@/lib/themes"
 
 export default function StaffMenu() {
   const router = useRouter()
-  const theme = useTheme()
   const [enabledModules, setEnabledModules] = useState<any[]>([])
   const [currentClient, setCurrentClient] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [themeLoaded, setThemeLoaded] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [themeReady, setThemeReady] = useState(false)
+  const theme = useTheme()
+
+  // Asegurar que el componente esté montado en el cliente
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const loadClientModules = async () => {
@@ -31,14 +37,15 @@ export default function StaffMenu() {
 
         // Aplicar tema del cliente si existe
         if (client) {
-          console.log("Applying theme for client:", client.name, "Theme:", client.theme)
+          console.log("🎨 Loading theme for client:", client.name, "Theme:", client.theme)
           await setThemeForClient(client)
-          // Esperar un poco más para que el tema se aplique
+
+          // Esperar a que el tema se aplique
           setTimeout(() => {
-            setThemeLoaded(true)
-          }, 500)
+            setThemeReady(true)
+          }, 200)
         } else {
-          setThemeLoaded(true)
+          setThemeReady(true)
         }
 
         if (client && client.enabledModules) {
@@ -54,14 +61,81 @@ export default function StaffMenu() {
         // En caso de error, mostrar módulos por defecto
         const defaultModules = getEnabledModules(getDefaultEnabledModules())
         setEnabledModules(defaultModules)
-        setThemeLoaded(true)
+        setThemeReady(true)
       } finally {
         setLoading(false)
       }
     }
 
-    loadClientModules()
-  }, [router])
+    if (mounted) {
+      loadClientModules()
+    }
+  }, [router, mounted])
+
+  // Obtener el tema actual con colores
+  const currentTheme = getCurrentTheme()
+
+  // Extraer colores del tema
+  const getThemeColors = () => {
+    if (currentTheme?.colors) {
+      // Tema personalizado
+      return {
+        primary: currentTheme.colors.primary,
+        background: currentTheme.colors.background,
+        text: currentTheme.colors.text,
+      }
+    } else if (currentTheme) {
+      // Tema predefinido - mapear a colores hex
+      const colorMap: { [key: string]: string } = {
+        "bg-blue-600": "#2563EB",
+        "bg-yellow-500": "#EAB308",
+        "bg-red-500": "#EF4444",
+        "bg-black": "#000000",
+        "bg-white": "#FFFFFF",
+        "text-gray-900": "#111827",
+        "text-yellow-400": "#FACC15",
+        "text-blue-800": "#1E40AF",
+      }
+
+      let primaryColor = "#2563EB" // default blue
+      let backgroundColor = "#FFFFFF" // default white
+      let textColor = "#111827" // default gray-900
+
+      // Extraer color primario
+      if (currentTheme.primaryColor?.includes("yellow")) {
+        primaryColor = "#EAB308"
+      } else if (currentTheme.primaryColor?.includes("red")) {
+        primaryColor = "#EF4444"
+      }
+
+      // Extraer color de fondo
+      if (currentTheme.bgColor?.includes("black")) {
+        backgroundColor = "#000000"
+      }
+
+      // Extraer color de texto
+      if (currentTheme.textColor?.includes("yellow")) {
+        textColor = "#FACC15"
+      } else if (currentTheme.textColor?.includes("blue-800")) {
+        textColor = "#1E40AF"
+      }
+
+      return {
+        primary: primaryColor,
+        background: backgroundColor,
+        text: textColor,
+      }
+    }
+
+    // Fallback
+    return {
+      primary: "#2563EB",
+      background: "#FFFFFF",
+      text: "#111827",
+    }
+  }
+
+  const themeColors = getThemeColors()
 
   // Verificación de seguridad para el tema
   const safeTheme = theme || {
@@ -71,9 +145,10 @@ export default function StaffMenu() {
     borderColor: "border-gray-300",
   }
 
-  if (loading || !themeLoaded) {
+  // No renderizar nada hasta que esté montado en el cliente y el tema esté listo
+  if (!mounted || loading || !themeReady) {
     return (
-      <div className={`min-h-screen ${safeTheme.bgColor} ${safeTheme.textColor} p-4 flex items-center justify-center`}>
+      <div className="min-h-screen bg-white text-gray-900 p-4 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p>Cargando panel de staff...</p>
@@ -83,10 +158,16 @@ export default function StaffMenu() {
   }
 
   return (
-    <div className={`min-h-screen ${safeTheme.bgColor} ${safeTheme.textColor} p-4`}>
+    <div
+      className="min-h-screen p-4"
+      style={{
+        backgroundColor: themeColors.background,
+        color: themeColors.text,
+      }}
+    >
       <div className="flex justify-between items-center mb-6">
         <Link href="/">
-          <Button variant="outline" className={`${safeTheme.borderColor} ${safeTheme.textColor} hover:bg-gray-100`}>
+          <Button variant="outline" className={`${safeTheme.borderColor} hover:bg-gray-100`}>
             Volver al inicio
           </Button>
         </Link>
@@ -99,13 +180,18 @@ export default function StaffMenu() {
               className="w-16 h-16 rounded-full object-cover mb-2"
             />
           ) : (
-            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-2">
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center mb-2"
+              style={{ backgroundColor: themeColors.primary }}
+            >
               <span className="text-white text-xl font-bold">
                 {currentClient?.clubName ? currentClient.clubName.charAt(0).toUpperCase() : "SD"}
               </span>
             </div>
           )}
-          <h1 className={`text-3xl font-bold ${safeTheme.textColor} text-center`}>Panel del Staff</h1>
+          <h1 className="text-3xl font-bold text-center" style={{ color: themeColors.text }}>
+            Panel del Staff
+          </h1>
           {currentClient && (
             <p className="text-sm text-gray-600 mt-1">{currentClient.clubName || currentClient.name}</p>
           )}
@@ -135,14 +221,26 @@ export default function StaffMenu() {
       ) : (
         <div className="grid gap-6 w-full max-w-md mx-auto mt-8">
           {enabledModules.map((module) => (
-            <Button
+            <button
               key={module.id}
-              className={`w-full ${safeTheme.primaryColor} text-white text-xl py-6 px-4 min-h-[80px] flex items-center justify-center gap-3 font-semibold transition-all duration-200`}
+              className="w-full font-semibold text-lg py-6 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-3 min-h-[80px] shadow-lg hover:shadow-xl transform hover:scale-105 text-white"
+              style={{
+                backgroundColor: themeColors.primary,
+                color: "white",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "0.9"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1"
+              }}
               onClick={() => router.push(module.route)}
             >
-              <span className="text-2xl">{module.icon}</span>
-              <span className="text-xl">{module.name}</span>
-            </Button>
+              <span className="text-2xl" role="img" aria-label={module.name}>
+                {module.icon}
+              </span>
+              <span className="text-lg font-semibold">{module.name}</span>
+            </button>
           ))}
 
           {enabledModules.length < 7 && (

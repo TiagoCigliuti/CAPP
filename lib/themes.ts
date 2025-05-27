@@ -136,7 +136,7 @@ export const setThemeForClient = async (client: Client): Promise<void> => {
         // Agregar información del cliente
         themeToApply.clubName = client.clubName || client.name
         themeToApply.logo = client.logo || null
-        console.log("✅ Applied custom theme:", customTheme.name)
+        console.log("✅ Applied custom theme:", customTheme.name, "Colors:", customTheme.colors)
       }
     } else if (client.theme && clubThemes[client.theme as ClubTheme]) {
       // Si es un tema predefinido
@@ -151,7 +151,7 @@ export const setThemeForClient = async (client: Client): Promise<void> => {
       if (typeof localStorage !== "undefined") {
         localStorage.setItem("currentClientTheme", JSON.stringify(themeToApply))
         localStorage.setItem("clubTheme", client.theme)
-        console.log("💾 Theme saved to localStorage")
+        console.log("💾 Theme saved to localStorage:", themeToApply)
       }
     } else {
       console.log("⚠️ No theme to apply, using default")
@@ -182,7 +182,7 @@ export const getCurrentTheme = (): any => {
     if (clientTheme) {
       try {
         const theme = JSON.parse(clientTheme)
-        console.log("🎨 Using client theme:", theme.clubName || "Unknown")
+        console.log("🎨 Using client theme:", theme.clubName || "Unknown", theme.colors || "No colors")
         return theme
       } catch (error) {
         console.error("Error parsing client theme:", error)

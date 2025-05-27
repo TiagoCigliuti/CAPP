@@ -4,9 +4,19 @@ import { clubThemes, getCurrentTheme, type ClubTheme } from "@/lib/themes"
 import { useEffect, useState } from "react"
 
 export const useTheme = (theme?: ClubTheme) => {
-  const [currentTheme, setCurrentTheme] = useState(() => getCurrentTheme())
+  const [currentTheme, setCurrentTheme] = useState<any>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+    // Obtener tema inicial
+    const initialTheme = getCurrentTheme()
+    setCurrentTheme(initialTheme)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     // Escuchar cambios en localStorage para temas dinámicos
     const handleStorageChange = () => {
       const newTheme = getCurrentTheme()
@@ -29,9 +39,14 @@ export const useTheme = (theme?: ClubTheme) => {
       window.removeEventListener("storage", handleStorageChange)
       clearInterval(interval)
     }
-  }, [currentTheme])
+  }, [currentTheme, mounted])
 
-  const finalTheme = theme ? clubThemes[theme] : currentTheme
+  // Si no está montado, devolver tema por defecto
+  if (!mounted) {
+    return clubThemes.default
+  }
+
+  const finalTheme = theme ? clubThemes[theme] : currentTheme || clubThemes.default
   console.log("🎨 useTheme returning:", finalTheme.clubName || "Unknown", finalTheme.primaryColor)
 
   return finalTheme
