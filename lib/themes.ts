@@ -126,6 +126,8 @@ export const setThemeForClient = async (client: Client): Promise<void> => {
   try {
     let themeToApply: any = null
 
+    console.log("Applying theme for client:", client.name, "Theme ID:", client.theme)
+
     // Si el cliente tiene un tema personalizado
     if (client.theme && !clubThemes[client.theme as ClubTheme]) {
       const customTheme = await getCustomThemeById(client.theme)
@@ -134,12 +136,14 @@ export const setThemeForClient = async (client: Client): Promise<void> => {
         // Agregar información del cliente
         themeToApply.clubName = client.clubName || client.name
         themeToApply.logo = client.logo || null
+        console.log("Applied custom theme:", customTheme.name)
       }
     } else if (client.theme && clubThemes[client.theme as ClubTheme]) {
       // Si es un tema predefinido
       themeToApply = { ...clubThemes[client.theme as ClubTheme] }
       themeToApply.clubName = client.clubName || client.name
       themeToApply.logo = client.logo || themeToApply.logo
+      console.log("Applied predefined theme:", client.theme)
     }
 
     if (themeToApply) {
@@ -149,8 +153,31 @@ export const setThemeForClient = async (client: Client): Promise<void> => {
         localStorage.setItem("clubTheme", client.theme)
       }
 
-      // Aplicar estilos CSS dinámicamente
+      // Aplicar estilos CSS dinámicamente con delay para asegurar que el DOM esté listo
+      setTimeout(() => {
+        applyDynamicStyles(themeToApply)
+      }, 100)
+
+      // También aplicar inmediatamente
       applyDynamicStyles(themeToApply)
+    } else {
+      console.log("No theme to apply, using default")
+      // Si no hay tema, aplicar el default
+      const defaultTheme = {
+        ...clubThemes.default,
+        clubName: client.clubName || client.name,
+        logo: client.logo || null,
+      }
+
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("currentClientTheme", JSON.stringify(defaultTheme))
+        localStorage.setItem("clubTheme", "default")
+      }
+
+      setTimeout(() => {
+        applyDynamicStyles(defaultTheme)
+      }, 100)
+      applyDynamicStyles(defaultTheme)
     }
   } catch (error) {
     console.error("Error setting theme for client:", error)
@@ -160,6 +187,8 @@ export const setThemeForClient = async (client: Client): Promise<void> => {
 // Función para aplicar estilos CSS dinámicamente
 const applyDynamicStyles = (theme: any) => {
   if (typeof document === "undefined") return
+
+  console.log("Applying dynamic styles for theme:", theme)
 
   // Remover estilos anteriores si existen
   const existingStyle = document.getElementById("dynamic-theme-styles")
@@ -173,6 +202,7 @@ const applyDynamicStyles = (theme: any) => {
 
   // Extraer colores del tema
   const colors = extractColorsFromTheme(theme)
+  console.log("Extracted colors:", colors)
 
   style.textContent = `
     :root {
@@ -184,18 +214,73 @@ const applyDynamicStyles = (theme: any) => {
       --theme-border: ${colors.border};
     }
     
-    .theme-bg { background-color: var(--theme-background) !important; }
-    .theme-text { color: var(--theme-text) !important; }
-    .theme-primary { background-color: var(--theme-primary) !important; }
-    .theme-secondary { background-color: var(--theme-secondary) !important; }
-    .theme-accent { background-color: var(--theme-accent) !important; }
-    .theme-border { border-color: var(--theme-border) !important; }
+    /* Clases utilitarias para temas */
+    .theme-bg { 
+      background-color: ${colors.background} !important; 
+    }
+    .theme-text { 
+      color: ${colors.text} !important; 
+    }
+    .theme-primary { 
+      background-color: ${colors.primary} !important; 
+      color: white !important;
+    }
+    .theme-secondary { 
+      background-color: ${colors.secondary} !important; 
+      color: white !important;
+    }
+    .theme-accent { 
+      background-color: ${colors.accent} !important; 
+      color: white !important;
+    }
+    .theme-border { 
+      border-color: ${colors.border} !important; 
+    }
     
-    .theme-primary-hover:hover { background-color: var(--theme-primary) !important; opacity: 0.9; }
-    .theme-secondary-hover:hover { background-color: var(--theme-secondary) !important; opacity: 0.9; }
+    /* Botones con colores del tema */
+    .btn-theme-primary {
+      background-color: ${colors.primary} !important;
+      border-color: ${colors.primary} !important;
+      color: white !important;
+    }
+    .btn-theme-primary:hover {
+      background-color: ${colors.primary} !important;
+      opacity: 0.9 !important;
+      color: white !important;
+    }
+    
+    .btn-theme-secondary {
+      background-color: ${colors.secondary} !important;
+      border-color: ${colors.secondary} !important;
+      color: white !important;
+    }
+    .btn-theme-secondary:hover {
+      background-color: ${colors.secondary} !important;
+      opacity: 0.9 !important;
+      color: white !important;
+    }
+
+    /* Override para clases específicas que podrían estar causando problemas */
+    .bg-blue-600 {
+      background-color: ${colors.primary} !important;
+    }
+    .hover\\:bg-blue-700:hover {
+      background-color: ${colors.primary} !important;
+      opacity: 0.9 !important;
+    }
+    
+    /* Asegurar que el texto sea visible */
+    button {
+      color: white !important;
+    }
+    
+    .text-white {
+      color: white !important;
+    }
   `
 
   document.head.appendChild(style)
+  console.log("Dynamic styles applied successfully")
 }
 
 // Función para extraer colores del tema
@@ -256,7 +341,12 @@ export const getCurrentTheme = (): any => {
     const clientTheme = localStorage.getItem("currentClientTheme")
     if (clientTheme) {
       try {
-        return JSON.parse(clientTheme)
+        const theme = JSON.parse(clientTheme)
+        // Aplicar estilos dinámicos si no están aplicados
+        setTimeout(() => {
+          applyDynamicStyles(theme)
+        }, 50)
+        return theme
       } catch (error) {
         console.error("Error parsing client theme:", error)
       }
@@ -349,10 +439,25 @@ export const initializeTheme = async (): Promise<void> => {
     if (clientTheme) {
       try {
         const theme = JSON.parse(clientTheme)
+        console.log("Initializing theme on page load:", theme)
+        // Aplicar con delay para asegurar que el DOM esté listo
+        setTimeout(() => {
+          applyDynamicStyles(theme)
+        }, 100)
+        // También aplicar inmediatamente
         applyDynamicStyles(theme)
       } catch (error) {
         console.error("Error initializing theme:", error)
       }
     }
+  }
+}
+
+// Función para forzar la aplicación del tema (útil para debugging)
+export const forceApplyTheme = (): void => {
+  const theme = getCurrentTheme()
+  if (theme) {
+    console.log("Force applying theme:", theme)
+    applyDynamicStyles(theme)
   }
 }
