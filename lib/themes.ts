@@ -121,6 +121,96 @@ export const getCustomThemeById = async (themeId: string): Promise<CustomTheme |
 
 // === FUNCIONES DE APLICACIÓN DE TEMAS ===
 
+// Función para aplicar estilos CSS dinámicamente
+export const applyDynamicStyles = (theme: any) => {
+  if (typeof document === "undefined") return
+
+  // Remover estilos anteriores si existen
+  const existingStyle = document.getElementById("dynamic-theme-styles")
+  if (existingStyle) {
+    existingStyle.remove()
+  }
+
+  // Crear nuevos estilos
+  const style = document.createElement("style")
+  style.id = "dynamic-theme-styles"
+
+  // Extraer colores del tema
+  const colors = extractColorsFromTheme(theme)
+
+  style.textContent = `
+    :root {
+      --theme-primary: ${colors.primary};
+      --theme-secondary: ${colors.secondary};
+      --theme-background: ${colors.background};
+      --theme-text: ${colors.text};
+      --theme-accent: ${colors.accent};
+      --theme-border: ${colors.border};
+    }
+    
+    .theme-bg { background-color: var(--theme-background) !important; }
+    .theme-text { color: var(--theme-text) !important; }
+    .theme-primary { background-color: var(--theme-primary) !important; }
+    .theme-secondary { background-color: var(--theme-secondary) !important; }
+    .theme-accent { background-color: var(--theme-accent) !important; }
+    .theme-border { border-color: var(--theme-border) !important; }
+    
+    .theme-primary-hover:hover { background-color: var(--theme-primary) !important; opacity: 0.9; }
+    .theme-secondary-hover:hover { background-color: var(--theme-secondary) !important; opacity: 0.9; }
+  `
+
+  document.head.appendChild(style)
+}
+
+// Función para extraer colores del tema
+const extractColorsFromTheme = (theme: any) => {
+  // Si es un tema personalizado con estructura de colores
+  if (theme.colors) {
+    return theme.colors
+  }
+
+  // Si es un tema predefinido, extraer colores de las clases CSS
+  return {
+    primary: extractColorFromClass(theme.primaryColor) || "#3B82F6",
+    secondary: extractColorFromClass(theme.secondaryColor) || "#1F2937",
+    background: extractColorFromClass(theme.bgColor) || "#FFFFFF",
+    text: extractColorFromClass(theme.textColor) || "#111827",
+    accent: extractColorFromClass(theme.accentColor) || "#6B7280",
+    border: extractColorFromClass(theme.borderColor) || "#D1D5DB",
+  }
+}
+
+// Función auxiliar para extraer color de clase CSS
+const extractColorFromClass = (cssClass: string): string | null => {
+  if (!cssClass) return null
+
+  // Mapeo básico de clases Tailwind a colores hex
+  const colorMap: { [key: string]: string } = {
+    "bg-blue-600": "#2563EB",
+    "bg-yellow-500": "#EAB308",
+    "bg-red-500": "#EF4444",
+    "bg-gray-800": "#1F2937",
+    "bg-gray-600": "#4B5563",
+    "bg-white": "#FFFFFF",
+    "bg-black": "#000000",
+    "text-gray-900": "#111827",
+    "text-yellow-400": "#FACC15",
+    "text-blue-800": "#1E40AF",
+    "border-gray-300": "#D1D5DB",
+    "border-yellow-400": "#FACC15",
+    "border-blue-300": "#93C5FD",
+  }
+
+  // Buscar coincidencia en el mapeo
+  for (const [className, color] of Object.entries(colorMap)) {
+    if (cssClass.includes(className)) {
+      return color
+    }
+  }
+
+  return null
+}
+
 // Función para aplicar tema de cliente automáticamente
 export const setThemeForClient = async (client: Client): Promise<void> => {
   try {
@@ -153,6 +243,9 @@ export const setThemeForClient = async (client: Client): Promise<void> => {
         localStorage.setItem("clubTheme", client.theme)
         console.log("💾 Theme saved to localStorage:", themeToApply)
       }
+
+      // Aplicar estilos CSS dinámicamente
+      applyDynamicStyles(themeToApply)
     } else {
       console.log("⚠️ No theme to apply, using default")
       // Si no hay tema, aplicar el default
@@ -166,6 +259,8 @@ export const setThemeForClient = async (client: Client): Promise<void> => {
         localStorage.setItem("currentClientTheme", JSON.stringify(defaultTheme))
         localStorage.setItem("clubTheme", "default")
       }
+
+      applyDynamicStyles(defaultTheme)
     }
   } catch (error) {
     console.error("❌ Error setting theme for client:", error)
@@ -238,6 +333,14 @@ export const clearUserTheme = (): void => {
     localStorage.removeItem("clubTheme")
     localStorage.removeItem("currentClientTheme")
   }
+
+  // Remover estilos dinámicos
+  if (typeof document !== "undefined") {
+    const existingStyle = document.getElementById("dynamic-theme-styles")
+    if (existingStyle) {
+      existingStyle.remove()
+    }
+  }
 }
 
 // Función para establecer tema manualmente (para admins)
@@ -271,6 +374,7 @@ export const initializeTheme = async (): Promise<void> => {
       try {
         const theme = JSON.parse(clientTheme)
         console.log("🚀 Initializing theme on page load:", theme.clubName || "Unknown")
+        applyDynamicStyles(theme)
       } catch (error) {
         console.error("Error initializing theme:", error)
       }

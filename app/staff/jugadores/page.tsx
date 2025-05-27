@@ -15,6 +15,8 @@ import { agregarJugador, obtenerJugadores, eliminarJugador as eliminarJugadorFir
 import { useTheme } from "@/hooks/useTheme"
 import { getCurrentUser, getCurrentClient, createUser } from "@/lib/users"
 import { toast } from "@/hooks/use-toast"
+import { getCurrentTheme } from "@/lib/themes"
+import { setThemeForClient } from "@/lib/themeHelpers" // Declare the variable before using it
 
 // Función para calcular la edad
 const calcularEdad = (fechaNacimiento: string) => {
@@ -40,6 +42,9 @@ export default function GestionJugadores() {
   const [currentClient, setCurrentClient] = useState<any>(null)
   const [posicionesGuardadas, setPosicionesGuardadas] = useState<string[]>([])
 
+  const [mounted, setMounted] = useState(false)
+  const [themeReady, setThemeReady] = useState(false)
+
   // Usar el hook useTheme con verificación de seguridad
   const themeData = useTheme()
   const safeTheme = {
@@ -53,6 +58,65 @@ export default function GestionJugadores() {
     logo: themeData?.logo || null,
     clubName: themeData?.clubName || "Sistema Deportivo",
   }
+
+  // Asegurar que el componente esté montado en el cliente
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Obtener el tema actual con colores
+  const currentTheme = getCurrentTheme()
+
+  // Extraer colores del tema
+  const getThemeColors = () => {
+    if (currentTheme?.colors) {
+      // Tema personalizado
+      return {
+        primary: currentTheme.colors.primary,
+        background: currentTheme.colors.background,
+        text: currentTheme.colors.text,
+      }
+    } else if (currentTheme) {
+      // Tema predefinido - mapear a colores hex
+      let primaryColor = "#2563EB" // default blue
+      let backgroundColor = "#FFFFFF" // default white
+      let textColor = "#111827" // default gray-900
+
+      // Extraer color primario
+      if (currentTheme.primaryColor?.includes("yellow")) {
+        primaryColor = "#EAB308"
+      } else if (currentTheme.primaryColor?.includes("red")) {
+        primaryColor = "#EF4444"
+      }
+
+      // Extraer color de fondo
+      if (currentTheme.bgColor?.includes("black")) {
+        backgroundColor = "#000000"
+      }
+
+      // Extraer color de texto
+      if (currentTheme.textColor?.includes("yellow")) {
+        textColor = "#FACC15"
+      } else if (currentTheme.textColor?.includes("blue-800")) {
+        textColor = "#1E40AF"
+      }
+
+      return {
+        primary: primaryColor,
+        background: backgroundColor,
+        text: textColor,
+      }
+    }
+
+    // Fallback
+    return {
+      primary: "#2563EB",
+      background: "#FFFFFF",
+      text: "#111827",
+    }
+  }
+
+  const themeColors = getThemeColors()
 
   // Estados de búsqueda y filtros
   const [busqueda, setBusqueda] = useState("")
@@ -89,6 +153,11 @@ export default function GestionJugadores() {
         setCurrentClient(client)
 
         if (client) {
+          await setThemeForClient(client)
+          setTimeout(() => {
+            setThemeReady(true)
+          }, 200)
+
           // Cargar jugadores del cliente actual
           const data = await obtenerJugadores(client.id)
           setJugadores(data)
@@ -100,6 +169,7 @@ export default function GestionJugadores() {
         } else {
           setError("No se pudo identificar el cliente actual")
           setJugadores([])
+          setThemeReady(true)
         }
       } catch (err) {
         console.error("Error al cargar jugadores:", err)
@@ -356,8 +426,22 @@ export default function GestionJugadores() {
     setFiltroPosicion("all")
   }
 
+  if (!mounted || cargando || !themeReady) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    )
+  }
+
   return (
-    <div className={`min-h-screen ${safeTheme.bgColor} ${safeTheme.textColor} p-4`}>
+    <div
+      className="min-h-screen p-4"
+      style={{
+        backgroundColor: themeColors.background,
+        color: themeColors.text,
+      }}
+    >
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <Link href="/staff">
@@ -405,7 +489,8 @@ export default function GestionJugadores() {
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
           {/* Botón crear jugador */}
           <Button
-            className={`${safeTheme.primaryColor} text-white`}
+            className="text-white text-xl py-6 px-4 min-h-[80px] flex items-center justify-center gap-3 font-semibold transition-all duration-200"
+            style={{ backgroundColor: themeColors.primary }}
             onClick={() => setMostrarFormulario(!mostrarFormulario)}
           >
             ➕ {mostrarFormulario ? "Cancelar" : "Crear nuevo jugador"}
@@ -677,7 +762,11 @@ export default function GestionJugadores() {
 
             <div className="mt-6 pt-4 border-t border-gray-200">
               <div className="flex gap-4">
-                <Button className={`${safeTheme.primaryColor} text-white`} onClick={guardarJugador}>
+                <Button
+                  className="text-white"
+                  style={{ backgroundColor: themeColors.primary }}
+                  onClick={guardarJugador}
+                >
                   Guardar Jugador
                 </Button>
                 <Button variant="outline" onClick={resetFormulario}>
