@@ -9,7 +9,7 @@ export interface StaffModule {
 export const STAFF_MODULES: StaffModule[] = [
   {
     id: "jugadores",
-    name: "Jugadores",
+    name: "Gestión de Jugadores",
     description: "Gestión de jugadores del equipo",
     icon: "👤",
     route: "/staff/jugadores",
@@ -27,6 +27,13 @@ export const STAFF_MODULES: StaffModule[] = [
     description: "Evaluaciones y tests de rendimiento",
     icon: "🧪",
     route: "/staff/evaluaciones",
+  },
+  {
+    id: "ingreso_jugadores",
+    name: "Ingreso Jugadores",
+    description: "Acceso a formularios para jugadores",
+    icon: "🧍",
+    route: "/players",
   },
   {
     id: "carga_externa",
@@ -59,7 +66,7 @@ export const STAFF_MODULES: StaffModule[] = [
 ]
 
 export const getDefaultEnabledModules = (): string[] => {
-  return ["jugadores", "calendario", "carga_interna"] // Módulos habilitados por defecto
+  return ["jugadores", "calendario", "ingreso_jugadores", "carga_interna"] // Agregar ingreso_jugadores a los módulos por defecto
 }
 
 export const getModuleById = (id: string): StaffModule | undefined => {

@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -10,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { getCurrentUser, isAdmin, getClients, createClient, updateClient } from "@/lib/users"
 import { eliminarCliente } from "@/lib/firestoreHelpers"
-import { clubThemes } from "@/lib/themes"
+import { clubThemes, getCustomThemes } from "@/lib/themes"
 import { STAFF_MODULES, getDefaultEnabledModules } from "@/lib/staffModules"
 import { toast } from "@/hooks/use-toast"
 import { Pencil, Plus, X, Settings, Search, Trash2, ChevronUp } from "lucide-react"
@@ -28,10 +30,14 @@ export default function ClientsManagement() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
+    clubName: "",
     theme: "default",
+    logo: "",
     status: "active" as "active" | "inactive",
     enabledModules: getDefaultEnabledModules(),
   })
+
+  const [customThemes, setCustomThemes] = useState<any[]>([])
 
   useEffect(() => {
     const user = getCurrentUser()
@@ -42,6 +48,18 @@ export default function ClientsManagement() {
 
     loadClients()
   }, [router])
+
+  useEffect(() => {
+    const loadCustomThemes = async () => {
+      try {
+        const themes = await getCustomThemes()
+        setCustomThemes(themes)
+      } catch (error) {
+        console.error("Error loading custom themes:", error)
+      }
+    }
+    loadCustomThemes()
+  }, [])
 
   useEffect(() => {
     // Filtrar clientes basado en el término de búsqueda
@@ -74,10 +92,31 @@ export default function ClientsManagement() {
     }
   }
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          setFormData({ ...formData, logo: e.target?.result as string })
+        }
+        reader.readAsDataURL(file)
+      } else {
+        toast({
+          title: "Error",
+          description: "Por favor selecciona un archivo de imagen válido",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
   const resetForm = () => {
     setFormData({
       name: "",
+      clubName: "",
       theme: "default",
+      logo: "",
       status: "active",
       enabledModules: getDefaultEnabledModules(),
     })
@@ -105,6 +144,15 @@ export default function ClientsManagement() {
       return
     }
 
+    if (!formData.clubName.trim()) {
+      toast({
+        title: "Error",
+        description: "El nombre del club es requerido",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (formData.enabledModules.length === 0) {
       toast({
         title: "Error",
@@ -115,8 +163,7 @@ export default function ClientsManagement() {
     }
 
     try {
-      const logo = formData.theme === "penarol" ? "/penarol-white-bg.png" : undefined
-      await createClient(formData.name, formData.theme, logo, formData.enabledModules)
+      await createClient(formData.name, formData.theme, formData.logo, formData.enabledModules, formData.clubName)
       await loadClients()
 
       toast({
@@ -157,7 +204,9 @@ export default function ClientsManagement() {
     try {
       const updates: any = {
         name: formData.name,
+        clubName: formData.clubName,
         theme: formData.theme,
+        logo: formData.logo,
         status: formData.status,
         enabledModules: formData.enabledModules,
       }
@@ -220,7 +269,9 @@ export default function ClientsManagement() {
     setEditingClient(client)
     setFormData({
       name: client.name,
+      clubName: client.clubName || "",
       theme: client.theme,
+      logo: client.logo || "",
       status: client.status,
       enabledModules: client.enabledModules || getDefaultEnabledModules(),
     })
@@ -329,6 +380,15 @@ export default function ClientsManagement() {
                       id="clientName"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Ej: Cliente Peñarol"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="clubName">Nombre del Club</Label>
+                    <Input
+                      id="clubName"
+                      value={formData.clubName}
+                      onChange={(e) => setFormData({ ...formData, clubName: e.target.value })}
                       placeholder="Ej: Club Atlético Peñarol"
                     />
                   </div>
@@ -340,12 +400,53 @@ export default function ClientsManagement() {
                       onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
                       className="w-full p-2 border border-gray-300 rounded-md"
                     >
-                      {Object.keys(clubThemes).map((theme) => (
-                        <option key={theme} value={theme}>
-                          {theme === "default" ? "Genérico" : theme.charAt(0).toUpperCase() + theme.slice(1)}
-                        </option>
-                      ))}
+                      <optgroup label="Temas Predefinidos">
+                        {Object.keys(clubThemes).map((theme) => (
+                          <option key={theme} value={theme}>
+                            {theme === "default" ? "Genérico" : theme.charAt(0).toUpperCase() + theme.slice(1)}
+                          </option>
+                        ))}
+                      </optgroup>
+                      {customThemes.length > 0 && (
+                        <optgroup label="Temas Personalizados">
+                          {customThemes.map((theme) => (
+                            <option key={theme.id} value={theme.id}>
+                              {theme.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
                     </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="clubLogo">Logo/Escudo del Club</Label>
+                    <div className="space-y-2">
+                      <Input
+                        id="clubLogo"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                      {formData.logo && (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={formData.logo || "/placeholder.svg"}
+                            alt="Logo preview"
+                            className="w-16 h-16 object-contain border rounded"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setFormData({ ...formData, logo: "" })}
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Eliminar
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -462,6 +563,15 @@ export default function ClientsManagement() {
                           />
                         </div>
                         <div>
+                          <Label htmlFor={`edit-clubName-${client.id}`}>Nombre del Club</Label>
+                          <Input
+                            id={`edit-clubName-${client.id}`}
+                            value={formData.clubName}
+                            onChange={(e) => setFormData({ ...formData, clubName: e.target.value })}
+                            placeholder="Ej: Club Atlético Peñarol"
+                          />
+                        </div>
+                        <div>
                           <Label htmlFor={`edit-theme-${client.id}`}>Tema</Label>
                           <select
                             id={`edit-theme-${client.id}`}
@@ -469,12 +579,53 @@ export default function ClientsManagement() {
                             onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
                             className="w-full p-2 border border-gray-300 rounded-md"
                           >
-                            {Object.keys(clubThemes).map((theme) => (
-                              <option key={theme} value={theme}>
-                                {theme === "default" ? "Genérico" : theme.charAt(0).toUpperCase() + theme.slice(1)}
-                              </option>
-                            ))}
+                            <optgroup label="Temas Predefinidos">
+                              {Object.keys(clubThemes).map((theme) => (
+                                <option key={theme} value={theme}>
+                                  {theme === "default" ? "Genérico" : theme.charAt(0).toUpperCase() + theme.slice(1)}
+                                </option>
+                              ))}
+                            </optgroup>
+                            {customThemes.length > 0 && (
+                              <optgroup label="Temas Personalizados">
+                                {customThemes.map((theme) => (
+                                  <option key={theme.id} value={theme.id}>
+                                    {theme.name}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            )}
                           </select>
+                        </div>
+                        <div>
+                          <Label htmlFor={`edit-logo-${client.id}`}>Logo/Escudo del Club</Label>
+                          <div className="space-y-2">
+                            <Input
+                              id={`edit-logo-${client.id}`}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            />
+                            {formData.logo && (
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={formData.logo || "/placeholder.svg"}
+                                  alt="Logo preview"
+                                  className="w-16 h-16 object-contain border rounded"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setFormData({ ...formData, logo: "" })}
+                                >
+                                  <X className="w-4 h-4 mr-1" />
+                                  Eliminar
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div>
                           <Label htmlFor={`edit-status-${client.id}`}>Estado</Label>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Pencil, Trash2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { clubThemes, getCurrentTheme } from "@/lib/themes"
+import { useTheme } from "@/hooks/useTheme"
 
 type Activity = { time: string; activity: string }
 
@@ -23,7 +23,22 @@ export default function CalendarioSemanal() {
   const [newActivity, setNewActivity] = useState("")
   const [editIndex, setEditIndex] = useState<number | null>(null)
   const router = useRouter()
-  const [theme, setTheme] = useState(clubThemes.default)
+
+  // Usar el hook useTheme para obtener el tema actual
+  const themeData = useTheme()
+
+  // Crear objeto seguro con valores por defecto
+  const safeTheme = {
+    bgColor: themeData?.bgColor || "bg-white",
+    textColor: themeData?.textColor || "text-gray-900",
+    primaryColor: themeData?.primaryColor || "bg-blue-600 hover:bg-blue-700",
+    secondaryColor: themeData?.secondaryColor || "bg-gray-800 hover:bg-gray-700",
+    accentColor: themeData?.accentColor || "bg-gray-600 hover:bg-gray-500",
+    borderColor: themeData?.borderColor || "border-gray-300",
+    cardBg: themeData?.cardBg || "bg-gray-50",
+    logo: themeData?.logo || null,
+    clubName: themeData?.clubName || "Sistema Deportivo",
+  }
 
   useEffect(() => {
     generateWeek(currentDate)
@@ -33,11 +48,6 @@ export default function CalendarioSemanal() {
       setSchedule(JSON.parse(stored))
     }
   }, [currentDate])
-
-  useEffect(() => {
-    const currentTheme = getCurrentTheme()
-    setTheme(clubThemes[currentTheme])
-  }, [])
 
   const generateWeek = (baseDate: Date) => {
     const start = startOfWeek(baseDate, { weekStartsOn: 1 })
@@ -95,32 +105,42 @@ export default function CalendarioSemanal() {
     : ""
 
   return (
-    <div className={`min-h-screen ${theme.bgColor} ${theme.textColor} p-6`} onClick={() => setSelectedDate("")}>
+    <div className={`min-h-screen ${safeTheme.bgColor} ${safeTheme.textColor} p-6`} onClick={() => setSelectedDate("")}>
       {/* Encabezado */}
       <div className="flex justify-between items-center mb-6">
         <Link href="/staff">
-          <Button variant="outline" className={`${theme.borderColor} ${theme.textColor} hover:bg-gray-100`}>
+          <Button variant="outline" className={`${safeTheme.borderColor} ${safeTheme.textColor} hover:bg-gray-100`}>
             Volver al menú
           </Button>
         </Link>
         <div className="flex flex-col items-center">
-          {theme.logo && (
+          {safeTheme.logo ? (
             <div className="relative w-[50px] h-[60px] mb-2">
-              <Image src={theme.logo || "/placeholder.svg"} alt="Logo" fill className="object-contain" />
+              <Image src={safeTheme.logo || "/placeholder.svg"} alt="Logo del Club" fill className="object-contain" />
+            </div>
+          ) : (
+            <div className="w-[50px] h-[60px] mb-2 bg-gray-200 rounded-lg flex items-center justify-center">
+              <span className="text-lg font-bold text-gray-600">
+                {safeTheme.clubName
+                  ?.split(" ")
+                  .map((word) => word[0])
+                  .join("")
+                  .slice(0, 2) || "SD"}
+              </span>
             </div>
           )}
-          <h1 className={`text-2xl ${theme.textColor} font-bold text-center`}>{weekRange}</h1>
+          <h1 className={`text-2xl ${safeTheme.textColor} font-bold text-center`}>{weekRange}</h1>
         </div>
         <div className="flex gap-2">
           <Button
             onClick={() => setCurrentDate(subWeeks(currentDate, 1))}
-            className={`${theme.secondaryColor} text-white`}
+            className={`${safeTheme.secondaryColor} text-white`}
           >
             ← Semana anterior
           </Button>
           <Button
             onClick={() => setCurrentDate(addWeeks(currentDate, 1))}
-            className={`${theme.secondaryColor} text-white`}
+            className={`${safeTheme.secondaryColor} text-white`}
           >
             Semana siguiente →
           </Button>
@@ -136,15 +156,15 @@ export default function CalendarioSemanal() {
           return (
             <div
               key={key}
-              className={`${theme.cardBg} border rounded-xl p-4 relative ${
-                selectedDate === key ? `border-green-500` : theme.borderColor
+              className={`${safeTheme.cardBg} border rounded-xl p-4 relative ${
+                selectedDate === key ? `border-green-500` : safeTheme.borderColor
               }`}
               onClick={(e) => {
                 e.stopPropagation()
                 setSelectedDate(key)
               }}
             >
-              <h2 className={`text-lg font-semibold ${theme.textColor} mb-2`}>
+              <h2 className={`text-lg font-semibold ${safeTheme.textColor} mb-2`}>
                 {format(date, "EEEE dd/MM", { locale: es })}
               </h2>
 
@@ -210,7 +230,7 @@ export default function CalendarioSemanal() {
                   )}
                   <Button
                     onClick={editIndex === null ? handleAddActivity : handleUpdateActivity}
-                    className={`w-full ${theme.primaryColor} text-white`}
+                    className={`w-full ${safeTheme.primaryColor} text-white`}
                   >
                     {editIndex === null ? "Agregar actividad" : "Actualizar actividad"}
                   </Button>

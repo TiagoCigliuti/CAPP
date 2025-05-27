@@ -1,8 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
-// Comentamos el ThemeSwitcher para ocultarlo
-// import ThemeSwitcher from "@/components/theme-switcher"
+import ClientLayout from "./ClientLayout"
 
 export const metadata: Metadata = {
   title: "v0 App",
@@ -18,9 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
-        {/* Theme switcher oculto - se activará según el usuario */}
-        {/* <ThemeSwitcher /> */}
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   )

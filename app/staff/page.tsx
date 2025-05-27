@@ -2,23 +2,18 @@
 
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { clubThemes, getCurrentTheme } from "@/lib/themes"
 import { getCurrentUser, getCurrentClient } from "@/lib/users"
 import { getEnabledModules, getDefaultEnabledModules } from "@/lib/staffModules"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useTheme } from "@/hooks/useTheme"
 
 export default function StaffMenu() {
   const router = useRouter()
-  const [theme, setTheme] = useState(clubThemes.default)
+  const theme = useTheme()
   const [enabledModules, setEnabledModules] = useState<any[]>([])
   const [currentClient, setCurrentClient] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const currentTheme = getCurrentTheme()
-    setTheme(clubThemes[currentTheme])
-  }, [])
 
   useEffect(() => {
     const loadClientModules = async () => {
@@ -53,9 +48,17 @@ export default function StaffMenu() {
     loadClientModules()
   }, [router])
 
+  // Verificación de seguridad para el tema
+  const safeTheme = theme || {
+    bgColor: "bg-white",
+    textColor: "text-gray-900",
+    primaryColor: "bg-blue-600",
+    borderColor: "border-gray-300",
+  }
+
   if (loading) {
     return (
-      <div className={`min-h-screen ${theme.bgColor} ${theme.textColor} p-4 flex items-center justify-center`}>
+      <div className={`min-h-screen ${safeTheme.bgColor} ${safeTheme.textColor} p-4 flex items-center justify-center`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p>Cargando panel de staff...</p>
@@ -65,20 +68,32 @@ export default function StaffMenu() {
   }
 
   return (
-    <div className={`min-h-screen ${theme.bgColor} ${theme.textColor} p-4`}>
+    <div className={`min-h-screen ${safeTheme.bgColor} ${safeTheme.textColor} p-4`}>
       <div className="flex justify-between items-center mb-6">
-        <Link href="/client-dashboard">
-          <Button variant="outline" className={`${theme.borderColor} ${theme.textColor} hover:bg-gray-100`}>
+        <Link href="/">
+          <Button variant="outline" className={`${safeTheme.borderColor} ${safeTheme.textColor} hover:bg-gray-100`}>
             Volver al inicio
           </Button>
         </Link>
         <div className="flex flex-col items-center">
-          {/* Logo genérico */}
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-2">
-            <span className="text-white text-xl font-bold">SD</span>
-          </div>
-          <h1 className={`text-3xl font-bold ${theme.textColor} text-center`}>Panel del Staff</h1>
-          {currentClient && <p className="text-sm text-gray-600 mt-1">Cliente: {currentClient.name}</p>}
+          {/* Logo del cliente o genérico */}
+          {currentClient?.logo ? (
+            <img
+              src={currentClient.logo || "/placeholder.svg"}
+              alt={`Logo ${currentClient.clubName || currentClient.name}`}
+              className="w-16 h-16 rounded-full object-cover mb-2"
+            />
+          ) : (
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-2">
+              <span className="text-white text-xl font-bold">
+                {currentClient?.clubName ? currentClient.clubName.charAt(0).toUpperCase() : "SD"}
+              </span>
+            </div>
+          )}
+          <h1 className={`text-3xl font-bold ${safeTheme.textColor} text-center`}>Panel del Staff</h1>
+          {currentClient && (
+            <p className="text-sm text-gray-600 mt-1">{currentClient.clubName || currentClient.name}</p>
+          )}
         </div>
         <div className="w-20"></div>
       </div>
@@ -107,7 +122,7 @@ export default function StaffMenu() {
           {enabledModules.map((module) => (
             <Button
               key={module.id}
-              className={`w-full ${theme.primaryColor} text-white hover:bg-blue-700 text-xl py-6 transition`}
+              className={`w-full ${safeTheme.primaryColor} text-white hover:opacity-90 text-xl py-6 transition`}
               onClick={() => router.push(module.route)}
             >
               {module.icon} {module.name}

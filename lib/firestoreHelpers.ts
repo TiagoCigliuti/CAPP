@@ -5,6 +5,7 @@ import { collection, addDoc, getDocs, deleteDoc, doc, getDoc, updateDoc, query, 
 const jugadoresRef = collection(db, "jugadores")
 const clientsRef = collection(db, "clients")
 const usersRef = collection(db, "users")
+const themesRef = collection(db, "themes")
 
 // === JUGADORES ===
 export async function agregarJugador(jugador: any, clientId?: string) {
@@ -313,6 +314,70 @@ export async function eliminarTodosLosUsuariosDeCliente(clientId: string) {
   }
 }
 
+// === TEMAS PERSONALIZADOS ===
+export async function agregarTema(tema: any) {
+  try {
+    const docRef = await addDoc(themesRef, {
+      ...tema,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    return { id: docRef.id, ...tema }
+  } catch (error) {
+    console.error("Error adding theme: ", error)
+    throw error
+  }
+}
+
+export async function obtenerTemas() {
+  try {
+    const snapshot = await getDocs(themesRef)
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+  } catch (error) {
+    console.error("Error getting themes: ", error)
+    throw error
+  }
+}
+
+export async function obtenerTema(id: string) {
+  try {
+    const docRef = doc(db, "themes", id)
+    const docSnap = await getDoc(docRef)
+
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() }
+    } else {
+      return null
+    }
+  } catch (error) {
+    console.error("Error getting theme: ", error)
+    throw error
+  }
+}
+
+export async function actualizarTema(id: string, datos: any) {
+  try {
+    const docRef = doc(db, "themes", id)
+    await updateDoc(docRef, {
+      ...datos,
+      updatedAt: new Date(),
+    })
+    return { id, ...datos }
+  } catch (error) {
+    console.error("Error updating theme: ", error)
+    throw error
+  }
+}
+
+export async function eliminarTema(id: string) {
+  try {
+    await deleteDoc(doc(db, "themes", id))
+  } catch (error) {
+    console.error("Error deleting theme: ", error)
+    throw error
+  }
+}
+
 // === LIMPIEZA Y MIGRACIÓN ===
 export async function limpiarJugadoresAleatorios() {
   try {
@@ -352,6 +417,7 @@ export async function inicializarDatosIniciales() {
       // Crear cliente ejemplo
       await agregarCliente({
         name: "Cliente Ejemplo",
+        clubName: "Club Ejemplo",
         theme: "default",
         status: "active",
         enabledModules: ["jugadores", "calendario", "carga_interna"],
@@ -360,6 +426,7 @@ export async function inicializarDatosIniciales() {
       // Crear cliente germanmenendez
       await agregarCliente({
         name: "germanmenendez",
+        clubName: "Club Germanmenendez",
         theme: "default",
         status: "active",
         enabledModules: ["jugadores", "calendario", "carga_interna"],

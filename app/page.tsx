@@ -58,8 +58,8 @@ export default function WelcomePage() {
         if (isAdmin(user)) {
           router.push("/admin")
         } else {
-          // Usuario de cliente va al dashboard del cliente
-          router.push("/client-dashboard")
+          // Usuario de cliente va al panel de staff
+          router.push("/staff")
         }
       } else {
         setError("Usuario o contraseña incorrectos, o cuenta inactiva.")

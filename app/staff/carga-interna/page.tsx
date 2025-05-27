@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
 import Link from "next/link"
-import { clubThemes, getCurrentTheme } from "@/lib/themes"
+import { clubThemes } from "@/lib/themes"
 import { getCurrentUser, getCurrentClient } from "@/lib/users"
 import { obtenerJugadores } from "@/lib/firestoreHelpers"
+import { useTheme } from "@/hooks/useTheme"
 
 const questionKeys = [
   { key: "mood", label: "Ánimo" },
@@ -50,14 +51,21 @@ export default function CargaInternaDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
   const [responses, setResponses] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
-  const [theme, setTheme] = useState(clubThemes.default)
   const [jugadores, setJugadores] = useState<any[]>([])
   const [currentClient, setCurrentClient] = useState<any>(null)
 
-  useEffect(() => {
-    const currentTheme = getCurrentTheme()
-    setTheme(clubThemes[currentTheme])
-  }, [])
+  const { theme: currentTheme, clientData } = useTheme()
+
+  // Crear objeto de tema seguro
+  const safeTheme = {
+    bgColor: currentTheme?.bgColor || clubThemes.default.bgColor,
+    textColor: currentTheme?.textColor || clubThemes.default.textColor,
+    cardBg: currentTheme?.cardBg || clubThemes.default.cardBg,
+    borderColor: currentTheme?.borderColor || clubThemes.default.borderColor,
+    primaryColor: currentTheme?.primaryColor || clubThemes.default.primaryColor,
+  }
+
+  const theme = safeTheme
 
   useEffect(() => {
     async function cargarDatos() {
@@ -183,9 +191,19 @@ export default function CargaInternaDashboard() {
           </Button>
         </Link>
         <div className="flex flex-col items-center">
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-2">
-            <span className="text-white text-xl font-bold">SD</span>
-          </div>
+          {clientData?.logo ? (
+            <img
+              src={clientData.logo || "/placeholder.svg"}
+              alt={clientData.clubName || "Club"}
+              className="w-16 h-16 rounded-full object-cover mb-2"
+            />
+          ) : (
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-2">
+              <span className="text-white text-xl font-bold">
+                {clientData?.clubName ? clientData.clubName.charAt(0).toUpperCase() : "SD"}
+              </span>
+            </div>
+          )}
           <h1 className={`text-2xl font-bold text-center ${theme.textColor}`}>Carga Interna</h1>
           {currentClient && <p className="text-sm text-gray-600 mt-1">Cliente: {currentClient.name}</p>}
         </div>

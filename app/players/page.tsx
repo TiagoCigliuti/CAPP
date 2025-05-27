@@ -4,21 +4,27 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { obtenerJugadores } from "@/lib/firestoreHelpers"
 import { Button } from "@/components/ui/button"
-import { clubThemes, getCurrentTheme } from "@/lib/themes"
 import { getCurrentUser, getCurrentClient } from "@/lib/users"
+import { useTheme } from "@/hooks/useTheme"
 import Link from "next/link"
 
 export default function PlayersPage() {
   const router = useRouter()
   const [jugadores, setJugadores] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
-  const [theme, setTheme] = useState(clubThemes.default)
   const [currentClient, setCurrentClient] = useState<any>(null)
 
-  useEffect(() => {
-    const currentTheme = getCurrentTheme()
-    setTheme(clubThemes[currentTheme])
-  }, [])
+  // Usar el hook useTheme para obtener el tema actual
+  const { theme, currentClient: clientFromTheme } = useTheme()
+
+  // Crear un tema seguro con valores por defecto
+  const safeTheme = {
+    bgColor: theme?.bgColor || "bg-white",
+    textColor: theme?.textColor || "text-gray-900",
+    cardBg: theme?.cardBg || "bg-white",
+    borderColor: theme?.borderColor || "border-gray-200",
+    primaryColor: theme?.primaryColor || "bg-blue-600",
+  }
 
   useEffect(() => {
     async function cargarJugadores() {
@@ -55,21 +61,44 @@ export default function PlayersPage() {
     router.push(`/player/${id}`)
   }
 
+  // Usar el cliente del hook si está disponible, sino el del estado
+  const displayClient = clientFromTheme || currentClient
+
   return (
-    <div className={`min-h-screen ${theme.bgColor} ${theme.textColor} p-4`}>
+    <div className={`min-h-screen ${safeTheme.bgColor} ${safeTheme.textColor} p-4`}>
       <div className="flex justify-between items-center mb-8">
-        <Link href="/client-dashboard">
-          <Button variant="outline" className={`${theme.borderColor} ${theme.textColor} hover:bg-gray-100`}>
+        <Link href="/staff">
+          <Button variant="outline" className={`${safeTheme.borderColor} ${safeTheme.textColor} hover:bg-gray-100`}>
             Volver
           </Button>
         </Link>
         <div className="flex flex-col items-center">
-          {/* Logo genérico */}
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-2">
-            <span className="text-white text-xl font-bold">SD</span>
-          </div>
-          <h1 className={`text-2xl font-bold text-center ${theme.textColor}`}>Selecciona tu perfil</h1>
-          {currentClient && <p className="text-sm text-gray-600 mt-1">Cliente: {currentClient.name}</p>}
+          {/* Logo del cliente o iniciales */}
+          {displayClient?.logo ? (
+            <div className="w-16 h-16 mb-2">
+              <img
+                src={displayClient.logo || "/placeholder.svg"}
+                alt={`Logo ${displayClient.clubName || displayClient.name}`}
+                className="w-full h-full rounded-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-2">
+              <span className="text-white text-xl font-bold">
+                {displayClient?.clubName
+                  ? displayClient.clubName
+                      .split(" ")
+                      .map((word: string) => word[0])
+                      .join("")
+                      .slice(0, 2)
+                  : "SD"}
+              </span>
+            </div>
+          )}
+          <h1 className={`text-2xl font-bold text-center ${safeTheme.textColor}`}>Selecciona tu perfil</h1>
+          {displayClient && (
+            <p className="text-sm text-gray-600 mt-1">{displayClient.clubName || displayClient.name}</p>
+          )}
         </div>
         <div className="w-20"></div>
       </div>
@@ -91,13 +120,12 @@ export default function PlayersPage() {
           </p>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-blue-800 text-sm">
-              <strong>💡 Sugerencia:</strong> Puedes acceder al panel de staff para gestionar jugadores y otras
-              funcionalidades del sistema.
+              <strong>💡 Sugerencia:</strong> Contacta al staff para que agreguen jugadores al sistema.
             </p>
           </div>
           <div className="mt-6">
             <Link href="/staff">
-              <Button className={`${theme.primaryColor} text-white`}>Ir al Panel de Staff</Button>
+              <Button className={`${safeTheme.primaryColor} text-white`}>Ir al Panel de Staff</Button>
             </Link>
           </div>
         </div>
@@ -107,7 +135,7 @@ export default function PlayersPage() {
             <div
               key={jugador.id}
               onClick={() => handleClick(jugador.id)}
-              className={`${theme.cardBg} border ${theme.borderColor} rounded-xl p-4 flex flex-col items-center cursor-pointer hover:shadow-md transition`}
+              className={`${safeTheme.cardBg} border ${safeTheme.borderColor} rounded-xl p-4 flex flex-col items-center cursor-pointer hover:shadow-md transition`}
             >
               {jugador.foto ? (
                 <div className="relative w-20 h-20 mb-2">
@@ -119,12 +147,12 @@ export default function PlayersPage() {
                 </div>
               ) : (
                 <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl mb-2">
-                  {jugador.nombre[0]}
-                  {jugador.apellido[0]}
+                  {jugador.nombre?.[0] || ""}
+                  {jugador.apellido?.[0] || ""}
                 </div>
               )}
-              <span className={`text-sm font-medium text-center ${theme.textColor}`}>
-                {jugador.nombre} {jugador.apellido}
+              <span className={`text-sm font-medium text-center ${safeTheme.textColor}`}>
+                {jugador.nombre || ""} {jugador.apellido || ""}
               </span>
             </div>
           ))}

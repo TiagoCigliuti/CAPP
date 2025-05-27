@@ -10,10 +10,12 @@ import {
   inicializarDatosIniciales,
 } from "./firestoreHelpers"
 import { getDefaultEnabledModules } from "./staffModules"
+import { setThemeForClient, clearUserTheme } from "./themes"
 
 export interface Client {
   id: string
   name: string
+  clubName?: string
   theme: string
   logo?: string
   status: "active" | "inactive"
@@ -47,6 +49,7 @@ export const getClients = async (): Promise<Client[]> => {
 // Update the createClient function to handle optional logo parameter and enabled modules
 export const createClient = async (
   name: string,
+  clubName = "",
   theme = "default",
   logo?: string,
   enabledModules?: string[],
@@ -54,6 +57,7 @@ export const createClient = async (
   try {
     const clientData: any = {
       name,
+      clubName: clubName || name,
       theme,
       status: "active" as const,
       enabledModules: enabledModules || getDefaultEnabledModules(),
@@ -108,13 +112,18 @@ export const getUsers = async (): Promise<User[]> => {
   }
 }
 
-// Update the createUser function to ensure no undefined values
-export const createUser = async (username: string, password: string, clientId: string): Promise<User> => {
+// Update the createUser function to handle different roles
+export const createUser = async (
+  username: string,
+  password: string,
+  clientId: string,
+  role: "client_user" | "jugador" = "client_user",
+): Promise<User> => {
   try {
     const userData = {
       username: username.trim(),
       password: password.trim(),
-      role: "client_user" as const,
+      role,
       clientId: clientId.trim(),
       status: "active" as const,
     }
@@ -145,10 +154,18 @@ export const authenticateUser = async (username: string, password: string): Prom
     // Verificar que el usuario esté activo
     if (user.status === "inactive") return null
 
-    // Si es usuario de cliente, verificar que el cliente esté activo
-    if (user.role === "client_user" && user.clientId) {
-      const client = await getClientById(user.clientId)
-      if (!client || client.status === "inactive") return null
+    // Si es usuario de cliente, verificar que el cliente esté activo y aplicar tema
+    if (user.role === "client_user" || user.role === "jugador") {
+      if (user.clientId) {
+        const client = await getClientById(user.clientId)
+        if (!client || client.status === "inactive") return null
+
+        // Aplicar el tema del cliente automáticamente
+        await setThemeForClient(client)
+      }
+    } else {
+      // Para admins, usar tema default
+      clearUserTheme()
     }
 
     return user as User
@@ -191,6 +208,8 @@ export const setCurrentUser = (user: User): void => {
 export const clearCurrentUser = (): void => {
   if (typeof localStorage !== "undefined") {
     localStorage.removeItem("currentUser")
+    // También limpiar el tema al cerrar sesión
+    clearUserTheme()
   }
 }
 
@@ -221,11 +240,11 @@ export const getRouteForRole = (role: string): string => {
     case "admin":
       return "/admin"
     case "client_user":
-      return "/client-dashboard"
+      return "/staff" // Cambiar de "/client-dashboard" a "/staff"
     case "jugador":
       return "/jugador"
     default:
-      return "/client-dashboard"
+      return "/staff" // Cambiar default también
   }
 }
 

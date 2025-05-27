@@ -124,13 +124,29 @@ export default function AdminPage() {
           <div className="bg-white rounded-xl shadow-sm p-8 hover:shadow-md transition-shadow">
             <div className="text-center">
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🎨</span>
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Gestión de Temas</h2>
+              <p className="text-gray-600 mb-6">Crear y administrar temas personalizados</p>
+              <Button
+                onClick={() => router.push("/admin/themes")}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3"
+              >
+                Gestionar Temas
+              </Button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-8 hover:shadow-md transition-shadow">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl">👤</span>
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Mi Perfil</h2>
               <p className="text-gray-600 mb-6">Administrar mi cuenta y configuración</p>
               <Button
                 onClick={() => router.push("/admin/profile")}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3"
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3"
               >
                 Gestionar Perfil
               </Button>
