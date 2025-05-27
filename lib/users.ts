@@ -221,6 +221,33 @@ export const getCurrentClient = async (): Promise<Client | null> => {
   return null
 }
 
+// === FUNCIÓN PARA OBTENER TEMA ACTUAL ===
+export const getCurrentTheme = async (): Promise<any> => {
+  try {
+    const user = getCurrentUser()
+    if (user && user.clientId) {
+      const client = await getClientById(user.clientId)
+      if (client) {
+        // Si el tema es un string, intentar parsearlo como JSON
+        if (typeof client.theme === "string") {
+          try {
+            return JSON.parse(client.theme)
+          } catch {
+            // Si no es JSON válido, retornar como string
+            return { name: client.theme }
+          }
+        }
+        return client.theme
+      }
+    }
+    // Tema por defecto
+    return { name: "default" }
+  } catch (error) {
+    console.error("Error getting current theme:", error)
+    return { name: "default" }
+  }
+}
+
 // === INICIALIZACIÓN ===
 export const initializeApp = async (): Promise<void> => {
   try {

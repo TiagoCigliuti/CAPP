@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
 import Link from "next/link"
 import { clubThemes } from "@/lib/themes"
-import { getCurrentUser, getCurrentClient } from "@/lib/users"
+import { getCurrentUser, getCurrentClient, getCurrentTheme } from "@/lib/users"
 import { obtenerJugadores } from "@/lib/firestoreHelpers"
 import { useTheme } from "@/hooks/useTheme"
 
@@ -54,18 +54,69 @@ export default function CargaInternaDashboard() {
   const [jugadores, setJugadores] = useState<any[]>([])
   const [currentClient, setCurrentClient] = useState<any>(null)
 
-  const { theme: currentTheme, clientData } = useTheme()
+  const { theme: clientTheme, clientData } = useTheme()
 
   // Crear objeto de tema seguro
   const safeTheme = {
-    bgColor: currentTheme?.bgColor || clubThemes.default.bgColor,
-    textColor: currentTheme?.textColor || clubThemes.default.textColor,
-    cardBg: currentTheme?.cardBg || clubThemes.default.cardBg,
-    borderColor: currentTheme?.borderColor || clubThemes.default.borderColor,
-    primaryColor: currentTheme?.primaryColor || clubThemes.default.primaryColor,
+    bgColor: clientTheme?.bgColor || clubThemes.default.bgColor,
+    textColor: clientTheme?.textColor || clubThemes.default.textColor,
+    cardBg: clientTheme?.cardBg || clubThemes.default.cardBg,
+    borderColor: clientTheme?.borderColor || clubThemes.default.borderColor,
+    primaryColor: clientTheme?.primaryColor || clubThemes.default.primaryColor,
   }
 
   const theme = safeTheme
+
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Obtener colores del tema
+  const getThemeColors = () => {
+    const currentTheme = getCurrentTheme()
+
+    if (currentTheme?.colors) {
+      return {
+        primary: currentTheme.colors.primary,
+        background: currentTheme.colors.background,
+        text: currentTheme.colors.text,
+      }
+    } else if (currentTheme) {
+      let primaryColor = "#2563EB"
+      let backgroundColor = "#FFFFFF"
+      let textColor = "#111827"
+
+      if (currentTheme.primaryColor?.includes("yellow")) {
+        primaryColor = "#EAB308"
+      } else if (currentTheme.primaryColor?.includes("red")) {
+        primaryColor = "#EF4444"
+      }
+
+      if (currentTheme.bgColor?.includes("black")) {
+        backgroundColor = "#000000"
+      }
+
+      if (currentTheme.textColor?.includes("yellow")) {
+        textColor = "#FACC15"
+      } else if (currentTheme.textColor?.includes("blue-800")) {
+        textColor = "#1E40AF"
+      }
+
+      return {
+        primary: primaryColor,
+        background: backgroundColor,
+        text: textColor,
+      }
+    }
+
+    return {
+      primary: "#2563EB",
+      background: "#FFFFFF",
+      text: "#111827",
+    }
+  }
 
   useEffect(() => {
     async function cargarDatos() {
@@ -182,8 +233,19 @@ export default function CargaInternaDashboard() {
 
   const stats = getCompletionStatus()
 
+  const themeColors = getThemeColors()
+  const currentTheme = getCurrentTheme()
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-white text-gray-900 p-4 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
   return (
-    <div className={`p-4 min-h-screen ${theme.bgColor} ${theme.textColor}`}>
+    <div className="p-4 min-h-screen" style={{ backgroundColor: themeColors.background, color: themeColors.text }}>
       <div className="flex justify-between items-center mb-6">
         <Link href="/staff">
           <Button variant="outline" className={`${theme.borderColor} ${theme.textColor} hover:bg-gray-100`}>
@@ -191,20 +253,25 @@ export default function CargaInternaDashboard() {
           </Button>
         </Link>
         <div className="flex flex-col items-center">
-          {clientData?.logo ? (
+          {currentTheme?.logo ? (
             <img
-              src={clientData.logo || "/placeholder.svg"}
-              alt={clientData.clubName || "Club"}
+              src={currentTheme.logo || "/placeholder.svg"}
+              alt={currentTheme?.clubName || "Club"}
               className="w-16 h-16 rounded-full object-cover mb-2"
             />
           ) : (
-            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-2">
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center mb-2"
+              style={{ backgroundColor: themeColors.primary }}
+            >
               <span className="text-white text-xl font-bold">
-                {clientData?.clubName ? clientData.clubName.charAt(0).toUpperCase() : "SD"}
+                {currentTheme?.clubName ? currentTheme.clubName.charAt(0).toUpperCase() : "SD"}
               </span>
             </div>
           )}
-          <h1 className={`text-2xl font-bold text-center ${theme.textColor}`}>Carga Interna</h1>
+          <h1 className="text-2xl font-bold text-center" style={{ color: themeColors.text }}>
+            Carga Interna
+          </h1>
           {currentClient && <p className="text-sm text-gray-600 mt-1">Cliente: {currentClient.name}</p>}
         </div>
         <div className="w-20"></div>
@@ -225,7 +292,11 @@ export default function CargaInternaDashboard() {
                 className="bg-white border-gray-300 text-gray-900"
               />
             </div>
-            <Button onClick={exportCSV} className={`flex items-center gap-2 ${theme.primaryColor} text-white`}>
+            <Button
+              onClick={exportCSV}
+              className="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg transition-all duration-200 hover:opacity-90"
+              style={{ backgroundColor: themeColors.primary }}
+            >
               <Download size={16} />
               Exportar CSV
             </Button>
